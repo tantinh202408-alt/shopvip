@@ -1,0 +1,79 @@
+<div class="container wallet-page withdraw-page">
+    <section class="section-card withdraw-hero">
+        <div>
+            <span class="withdraw-eyebrow">Rút tiền</span>
+            <h1 class="page-title">rút tiền </h1>
+            <p class="section-subtitle">tầm 2-3 ngày tiền về ngay</p>
+        </div>
+        <div class="withdraw-balance-card">
+            <span>Số dư khả dụng</span>
+            <strong id="withdraw-balance">0 ₫</strong>
+        </div>
+    </section>
+
+    <div class="withdraw-layout">
+        <section class="section-card withdraw-form-panel">
+            <div class="withdraw-panel-head">
+                <div>
+                    <h3 class="section-title">Thông tin nhận tiền</h3>
+                    <p class="section-subtitle"></p>
+                </div>
+            </div>
+
+            <form id="withdraw-form" class="withdraw-form-grid">
+                <div class="form-group">
+                    <label for="withdraw-amount">Số tiền muốn rút</label>
+                    <input id="withdraw-amount" type="number" name="amount" min="100000" step="1000" placeholder="Ví dụ: 500000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="withdraw-bank-name">Tên ngân hàng</label>
+                    <input id="withdraw-bank-name" type="text" name="bank_name" placeholder="Ví dụ: Vietcombank" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="withdraw-account-number">Số tài khoản</label>
+                    <input id="withdraw-account-number" type="text" name="account_number" placeholder="Nhập số tài khoản nhận tiền" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="withdraw-account-name">Tên chủ tài khoản</label>
+                    <input id="withdraw-account-name" type="text" name="account_name" placeholder="Nhập đúng tên chủ tài khoản" required>
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label>Upload mã QR</label>
+                    <div class="file-picker">
+                        <input type="file" name="qr_image" id="withdraw-qr-input" class="file-input" accept="image/*">
+                        <button type="button" class="btn-outline file-btn" data-file-target="withdraw-qr-input" data-file-label="withdraw-qr-label">Chon anh QR</button>
+                        <span id="withdraw-qr-label" class="file-label">chưa chọn file</span>
+                    </div>
+                    <div id="withdraw-qr-preview" class="upload-preview"></div>
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label for="withdraw-note">Ghi chú thêm</label>
+                    <textarea id="withdraw-note" name="note" rows="3" placeholder="Ví dụ: ngân hàng ưu tiên xử lý trong giờ hành chính"></textarea>
+                </div>
+
+                <div class="withdraw-submit-row">
+                    <div class="withdraw-submit-hint">
+                        <strong>nhớ kiểm tra thông tin</strong>
+                        <span>Sai số tài khoản hoặc tên chủ tài khoản sẽ làm chậm quá trình xử lý lệnh rút hoặc bị mất tiền ko hoàng trả</span>
+                    </div>
+                    <button class="btn-primary" type="submit">Gữi lệnh rút</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="section-card withdraw-history-panel">
+            <div class="withdraw-panel-head">
+                <div>
+                    <h3 class="section-title">Lịch sữ rút tiền</h3>
+                    <p class="section-subtitle"></p>
+                </div>
+            </div>
+            <div id="withdraw-history"></div>
+        </section>
+    </div>
+</div>

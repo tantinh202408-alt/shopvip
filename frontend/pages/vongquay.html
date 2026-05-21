@@ -1,0 +1,89 @@
+<div class="container reward-page reward-spin-page">
+    <div class="reward-hero reward-spin-hero">
+        <div class="spin-hero-copy">
+            <span class="reward-eyebrow">Mini game sự kiện hằng tuần</span>
+            <h1 id="spin-title" class="page-title">Vòng quay may mắn</h1>
+            <p id="spin-subtitle" class="section-subtitle">Hệ thống mở 1 ngày trong tuần và xử lý kết quả hoàn toàn ở phía server.</p>
+            <div class="badge-row">
+                <span id="spin-status-badge" class="badge badge-info">Đang tải</span>
+                <span id="spin-cooldown-badge" class="badge badge-secondary">Lịch sự kiện</span>
+            </div>
+        </div>
+
+        <div class="spin-schedule-glance">
+            <span class="spin-glance-label">Lịch mở gần nhất</span>
+            <strong id="spin-event-date">Đang tải...</strong>
+            <p id="spin-event-note">Hệ thống đang tải lịch mở vòng quay.</p>
+        </div>
+    </div>
+
+    <div class="reward-layout reward-spin-layout">
+        <section class="reward-main reward-spin-main">
+            <div class="section-card spin-stage-card">
+                <div class="spin-stage-heading">
+                    <div>
+                        <span class="reward-eyebrow">Bảng màu phần thưởng</span>
+                        <h3 class="section-title">Bánh quay sự kiện</h3>
+                        <p id="spin-stage-note" class="section-subtitle">Bánh quay chỉ hiển thị màu. Bảng bên cạnh cho biết màu nào tương ứng với phần thưởng nào.</p>
+                    </div>
+                </div>
+
+                <div class="spin-experience-grid">
+                    <div class="spin-wheel-panel">
+                        <div class="spin-wheel-shell">
+                            <div class="spin-pointer"></div>
+                            <div id="spin-wheel" class="spin-wheel"></div>
+                            <div class="spin-wheel-center">
+                                <strong id="spin-wheel-center-label">Sẵn sàng</strong>
+                                <span id="spin-wheel-center-note">1 lượt mỗi tài khoản trong ngày sự kiện.</span>
+                            </div>
+                        </div>
+
+                        <div class="spin-action-panel">
+                            <button id="spin-play-btn" class="btn-primary">Quay ngay</button>
+                            <p id="spin-help-text" class="section-subtitle">Chỉ có thể quay khi sự kiện đang mở.</p>
+
+                            <div class="spin-bonus-box">
+                                <div class="spin-bonus-head">
+                                    <strong>Quay miễn phí bằng mã</strong>
+                                    <span>Vượt link Link4m để lấy mã, sau đó dán vào ô bên dưới để quay trước thời gian mở sự kiện.</span>
+                                </div>
+
+                                <div class="spin-bonus-actions">
+                                    <button id="spin-bonus-link-btn" class="btn-outline" type="button">Lấy link nhận mã</button>
+                                    <div id="spin-bonus-link-result" class="spin-bonus-result"></div>
+                                </div>
+
+                                <div class="spin-bonus-input-row">
+                                    <input id="spin-bonus-code-input" type="text" placeholder="Dán mã quay miễn phí vào đây">
+                                    <button id="spin-bonus-play-btn" class="btn-outline" type="button">Quay bằng mã</button>
+                                </div>
+
+                                <div id="spin-bonus-reveal" class="spin-bonus-reveal" hidden></div>
+                                <p id="spin-bonus-help" class="spin-bonus-help">Mỗi mã chỉ dùng 1 lần và không tiêu hao lượt quay của ngày sự kiện.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="spin-legend-panel">
+                        <div class="spin-legend-head">
+                            <h3 class="section-title">Bảng màu phần thưởng</h3>
+                            <p class="section-subtitle">Trên bánh quay chỉ có màu, không hiển thị tên phần thưởng.</p>
+                        </div>
+                        <div id="spin-reward-list" class="reward-list spin-legend-list"></div>
+                    </aside>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <div>
+                        <h3 class="section-title">Nhật ký lượt quay</h3>
+                        <p class="section-subtitle">Lịch sử nhận thưởng gần đây của bạn.</p>
+                    </div>
+                </div>
+                <div id="spin-history" class="reward-history"></div>
+            </div>
+        </section>
+    </div>
+</div>

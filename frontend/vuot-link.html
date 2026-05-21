@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lấy key nhiệm vụ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #f5f7fb;
+            color: #111827;
+        }
+        main {
+            width: min(520px, calc(100% - 32px));
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+        }
+        h1 { margin: 0 0 8px; font-size: 24px; }
+        p { color: #4b5563; line-height: 1.5; }
+        code {
+            display: block;
+            word-break: break-all;
+            background: #111827;
+            color: #fff;
+            padding: 14px;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+        button, a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            padding: 0 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            color: #111827;
+            cursor: pointer;
+        }
+        .primary {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Key nhiem vu</h1>
+        <p>Key nay doc quyen cho tai khoan da tao link va chi nhan thuong duoc mot lan trong ngay.</p>
+        <code id="key-output">Dang tai...</code>
+        <button class="primary" id="copy-btn" type="button">Copy key</button>
+        <a href="/nhiemvu">Quay lai nhiem vu</a>
+    </main>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token') || '';
+        const output = document.getElementById('key-output');
+        output.textContent = token || 'Khong co key.';
+        document.getElementById('copy-btn').addEventListener('click', async () => {
+            if (!token) return;
+            await navigator.clipboard.writeText(token);
+        });
+    </script>
+</body>
+</html>

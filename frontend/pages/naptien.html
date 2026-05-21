@@ -1,0 +1,105 @@
+<div class="container">
+    <div class="deposit-hero">
+        <div>
+            <h1 class="page-title">Nạp tiền</h1>
+            <p class="section-subtitle">Tạo yêu cầu nạp, admin duyệt là tiền vào ví.</p>
+        </div>
+        <div class="deposit-badges">
+            <span class="badge badge-info">Realtime</span>
+            <span class="badge badge-success">Bảo mật</span>
+        </div>
+    </div>
+
+    <div class="deposit-layout">
+        <aside class="deposit-side">
+            <div id="bank-info" class="section-card" style="display: none;">
+                <h3 class="section-title">Thông tin chuyển khoản</h3>
+                <div class="bank-info-grid">
+                    <div class="bank-qr">
+                        <img id="bank-qr-image" src="" alt="QR chuyển khoản">
+                    </div>
+                    <div class="bank-details">
+                        <div class="bank-row"><strong>Ngân hàng:</strong> <span id="bank-name"></span></div>
+                        <div class="bank-row"><strong>Số tài khoản:</strong> <span id="bank-account-number"></span></div>
+                        <div class="bank-row"><strong>Tên tài khoản:</strong> <span id="bank-account-name"></span></div>
+                        <div class="bank-row" id="bank-note-row" style="display:none;"><strong>Nội dung:</strong> <span id="bank-note"></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="section-card deposit-tip">
+                <h3>Gợi ý</h3>
+                <p>Chuyển khoản đúng nội dung hệ thống hiển thị để admin đối soát và duyệt nhanh hơn.</p>
+            </div>
+        </aside>
+
+        <section class="deposit-main">
+            <div class="section-card section-spaced">
+                <h3 class="section-title">Tạo yêu cầu nạp tiền</h3>
+                <form id="deposit-form" class="form-grid form-grid-2">
+                    <div class="form-group">
+                        <label>Số tiền (VND)</label>
+                        <input type="number" name="amount" min="1000" step="1000" placeholder="Ví dụ: 100000" required>
+                        <div class="amount-quick-row">
+                            <button type="button" class="chip-amount" data-amount="50000">50K</button>
+                            <button type="button" class="chip-amount" data-amount="100000">100K</button>
+                            <button type="button" class="chip-amount" data-amount="200000">200K</button>
+                            <button type="button" class="chip-amount" data-amount="500000">500K</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Ngân hàng / phương thức</label>
+                        <select name="payment_method" id="payment-method-select" required>
+                            <option value="">-- Chọn từ danh sách --</option>
+                            <optgroup label="Ngân hàng">
+                                <option value="Vietcombank">Vietcombank</option>
+                                <option value="BIDV">BIDV</option>
+                                <option value="Techcombank">Techcombank</option>
+                                <option value="MB Bank">MB Bank</option>
+                                <option value="VietinBank">VietinBank</option>
+                                <option value="Sacombank">Sacombank</option>
+                                <option value="TPBank">TPBank</option>
+                                <option value="ACB">ACB</option>
+                                <option value="VPBank">VPBank</option>
+                                <option value="SHB">SHB</option>
+                                <option value="Agribank">Agribank</option>
+                            </optgroup>
+                            <optgroup label="Ví điện tử">
+                                <option value="Momo">Momo</option>
+                                <option value="ZaloPay">ZaloPay</option>
+                                <option value="ShopeePay">ShopeePay</option>
+                                <option value="Viettel Money">Viettel Money</option>
+                            </optgroup>
+                            <option value="Khac">Khác</option>
+                        </select>
+                        <input type="text" name="payment_method_custom" id="payment-method-custom" placeholder="Nhập tên ngân hàng / phương thức khác" style="display:none;margin-top:8px;">
+                    </div>
+                    <div class="form-group full">
+                        <label>Ảnh / chứng từ</label>
+                        <div class="file-picker">
+                            <input type="file" name="payment_proof" id="payment-proof" class="file-input">
+                            <button type="button" class="btn-outline file-btn" data-file-target="payment-proof" data-file-label="payment-proof-label">Chọn ảnh</button>
+                            <span id="payment-proof-label" class="file-label">Chưa chọn file</span>
+                        </div>
+                        <small>Nếu có, upload ảnh chứng từ (≤ 25MB)</small>
+                    </div>
+                    <div class="form-group full">
+                        <div id="deposit-upload-previews" class="upload-preview"></div>
+                    </div>
+                    <div class="form-group full">
+                        <div id="deposit-recaptcha" class="recaptcha-slot is-hidden"></div>
+                        <p id="deposit-recaptcha-status" class="captcha-gate-status"></p>
+                        <button type="button" id="deposit-recaptcha-retry" class="btn-outline" hidden>Tải lại xác thực</button>
+                    </div>
+                    <div class="form-group full">
+                        <button type="submit" class="btn-primary">Gửi yêu cầu</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="section-card">
+                <h3 class="section-title">Lịch sử yêu cầu nạp</h3>
+                <div id="deposit-requests"></div>
+            </div>
+        </section>
+    </div>
+</div>

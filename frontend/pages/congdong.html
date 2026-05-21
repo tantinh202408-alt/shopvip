@@ -1,0 +1,128 @@
+<div class="container">
+    <div class="msgr-shell">
+        <aside class="msgr-sidebar">
+            <div class="msgr-side-head">
+                <div class="msgr-brand">
+                    <div class="msgr-avatar">C</div>
+                    <div>
+                        <div class="msgr-title">Cong dong</div>
+                        <div class="msgr-subtitle">Sang dev</div>
+                    </div>
+                </div>
+                <span class="msgr-pill">Online</span>
+            </div>
+
+            <div class="msgr-side-section">
+                <div class="msgr-side-label">Phong</div>
+                <button
+                    type="button"
+                    class="msgr-thread is-active"
+                    data-community-panel-trigger="community"
+                    aria-current="true"
+                >
+                    <div class="msgr-thread-avatar">#</div>
+                    <div class="msgr-thread-body">
+                        <div class="msgr-thread-title">Phong chat chung</div>
+                        <div class="msgr-thread-meta">Tin nhan tu xoa sau 7 ngay</div>
+                    </div>
+                </button>
+
+                <button
+                    type="button"
+                    class="msgr-thread"
+                    data-community-panel-trigger="support"
+                    aria-current="false"
+                >
+                    <div class="msgr-thread-avatar">!</div>
+                    <div class="msgr-thread-body">
+                        <div class="msgr-thread-title">Ho tro & to cao</div>
+                        <div class="msgr-thread-meta">Chat rieng voi admin</div>
+                    </div>
+                </button>
+            </div>
+        </aside>
+
+        <section class="msgr-chat">
+            <div class="msgr-chat-head">
+                <div class="msgr-chat-title">
+                    <div class="msgr-chat-dot"></div>
+                    <div>
+                        <strong id="community-panel-title">Phong chat chung</strong>
+                        <div id="community-panel-subtitle" class="msgr-chat-sub">Nhắn tin nhanh, hỗ trợ ảnh và video link</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="community-panel-stack">
+                <div class="community-panel is-active" data-community-panel="community">
+                    <div class="msgr-chat-body">
+                        <div id="community-messages" class="community-messages msgr-messages"></div>
+                    </div>
+
+                    <div class="msgr-chat-foot">
+                        <form id="community-form" class="msgr-composer">
+                            <button
+                                type="button"
+                                class="msgr-icon-btn file-btn"
+                                aria-label="Chon anh"
+                                data-file-target="community-media"
+                                data-file-label="community-media-label"
+                            >
+                                <span class="msgr-icon">+</span>
+                            </button>
+                            <input type="file" id="community-media" class="file-input" accept="image/*">
+                            <textarea
+                                name="content"
+                                rows="1"
+                                placeholder="Nhập tin nhắn..."
+                                aria-label="Nhập tin nhắn"
+                            ></textarea>
+                            <button type="submit" class="msgr-send" aria-label="Gui">Gui</button>
+
+                            <div class="chat-human-check">
+                                <div id="community-message-recaptcha" class="recaptcha-slot is-hidden"></div>
+                                <p id="community-message-recaptcha-status" class="captcha-gate-status"></p>
+                                <button type="button" id="community-message-recaptcha-retry" class="btn-outline" hidden>Tai lai xac thuc</button>
+                            </div>
+                        </form>
+
+                        <div class="msgr-foot-meta">
+                            <div id="community-preview" class="upload-preview"></div>
+                            <small class="section-subtitle">Bạn cần đăng nhập để gửi tin nhắn.</small>
+                            <span id="community-media-label" class="file-label" style="display:none;">Chưa chọn file</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="community-panel" data-community-panel="support">
+                    <div class="msgr-chat-body">
+                        <div id="support-messages" class="chat-messages community-support-messages"></div>
+                    </div>
+
+                    <div class="msgr-chat-foot">
+                        <form id="support-form" class="chat-input community-support-form">
+                            <select name="type" class="chat-select">
+                                <option value="support">Ho tro</option>
+                                <option value="report">To cao</option>
+                            </select>
+                            <input type="text" name="content" placeholder="Nhập nội dung cần admin xử lý..." required>
+                            <button type="submit" class="msgr-send">Gui</button>
+
+                            <div class="chat-human-check">
+                                <div id="support-message-recaptcha" class="recaptcha-slot is-hidden"></div>
+                                <p id="support-message-recaptcha-status" class="captcha-gate-status"></p>
+                                <button type="button" id="support-message-recaptcha-retry" class="btn-outline" hidden>Tai lai xac thuc</button>
+                            </div>
+                        </form>
+
+                        <div class="msgr-foot-meta">
+                            <small class="section-subtitle">
+                                Muc nay gui rieng cho admin. Chon "To cao" neu can bao xau, lua dao hoac noi dung khong phu hop.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>

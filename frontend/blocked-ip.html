@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IP dang bi khoa</title>
+    <script>
+        (function initTheme() {
+            try {
+                const storageKey = 'site-theme-mode';
+                const saved = localStorage.getItem(storageKey);
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const theme = saved === 'light' || saved === 'dark' ? saved : (prefersDark ? 'dark' : 'light');
+                document.documentElement.dataset.theme = theme;
+                document.documentElement.style.colorScheme = theme;
+            } catch (_) {
+                document.documentElement.dataset.theme = 'light';
+                document.documentElement.style.colorScheme = 'light';
+            }
+        })();
+    </script>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg-1: #eef5ff;
+            --bg-2: #dfe8f5;
+            --panel: rgba(255, 255, 255, 0.84);
+            --panel-strong: rgba(248, 250, 252, 0.94);
+            --ink: #0f172a;
+            --muted: #64748b;
+            --line: rgba(59, 130, 246, 0.16);
+            --accent: #ea580c;
+            --accent-soft: rgba(249, 115, 22, 0.12);
+            --cyan: #0284c7;
+            --cyan-soft: rgba(14, 165, 233, 0.12);
+            --shadow: 0 28px 70px rgba(15, 23, 42, 0.12);
+            --topbar-bg: rgba(255, 255, 255, 0.45);
+            --hero-lead: #334155;
+            --card-bg: rgba(255, 255, 255, 0.66);
+            --meta-label: #0369a1;
+            --brand-mark-ink: #08131d;
+            --brand-mark-bg: linear-gradient(135deg, #61e5ff, #fff4cf);
+            --status-chip-ink: #c2410c;
+            --alert-title: #0f172a;
+            --side-bg:
+                linear-gradient(180deg, rgba(249, 115, 22, 0.08), rgba(14, 165, 233, 0.05)),
+                var(--panel-strong);
+        }
+
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --bg-1: #04131f;
+            --bg-2: #081f2f;
+            --panel: rgba(7, 21, 34, 0.86);
+            --panel-strong: rgba(10, 28, 43, 0.96);
+            --ink: #ecf7ff;
+            --muted: #8aa6ba;
+            --line: rgba(130, 190, 255, 0.18);
+            --accent: #ff6b3d;
+            --accent-soft: rgba(255, 107, 61, 0.16);
+            --cyan: #4dd9ff;
+            --cyan-soft: rgba(77, 217, 255, 0.16);
+            --shadow: 0 30px 80px rgba(0, 0, 0, 0.42);
+            --topbar-bg: rgba(255, 255, 255, 0.02);
+            --hero-lead: #c7dbe8;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --meta-label: #9ec9dc;
+            --brand-mark-ink: #08131d;
+            --brand-mark-bg: linear-gradient(135deg, #61e5ff, #fff4cf);
+            --status-chip-ink: #ffd7cb;
+            --alert-title: #ffffff;
+            --side-bg:
+                linear-gradient(180deg, rgba(255, 107, 61, 0.08), rgba(77, 217, 255, 0.06)),
+                var(--panel-strong);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            color: var(--ink);
+            font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(77, 217, 255, 0.18), transparent 28%),
+                radial-gradient(circle at 85% 18%, rgba(255, 107, 61, 0.2), transparent 24%),
+                radial-gradient(circle at 50% 120%, rgba(14, 92, 143, 0.45), transparent 36%),
+                linear-gradient(140deg, var(--bg-1) 0%, var(--bg-2) 52%, #06141f 100%);
+            transition: background 0.25s ease, color 0.25s ease;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        body::before {
+            background:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 38px 38px;
+            mask-image: radial-gradient(circle at center, black 38%, transparent 88%);
+            opacity: 0.42;
+        }
+
+        body::after {
+            background:
+                radial-gradient(circle at center, rgba(77, 217, 255, 0.08), transparent 52%);
+        }
+
+        .scene {
+            position: relative;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 32px;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(10px);
+            opacity: 0.55;
+            animation: drift 8s ease-in-out infinite;
+        }
+
+        .orb-a {
+            top: 10%;
+            left: 10%;
+            width: 140px;
+            height: 140px;
+            background: rgba(77, 217, 255, 0.14);
+        }
+
+        .orb-b {
+            right: 8%;
+            bottom: 16%;
+            width: 180px;
+            height: 180px;
+            background: rgba(255, 107, 61, 0.14);
+            animation-delay: -3s;
+        }
+
+        .shell {
+            position: relative;
+            width: min(960px, 100%);
+            border: 1px solid var(--line);
+            border-radius: 30px;
+            overflow: hidden;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+                var(--panel);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(130deg, rgba(255, 255, 255, 0.07), transparent 30%, transparent 68%, rgba(77, 217, 255, 0.08));
+            pointer-events: none;
+        }
+
+        .topbar {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--line);
+            background: var(--topbar-bg);
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            color: var(--brand-mark-ink);
+            background: var(--brand-mark-bg);
+            box-shadow: 0 12px 24px rgba(77, 217, 255, 0.18);
+            font-size: 18px;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 107, 61, 0.3);
+            background: var(--accent-soft);
+            color: var(--status-chip-ink);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: var(--accent);
+            box-shadow: 0 0 0 6px rgba(255, 107, 61, 0.12);
+        }
+
+        .content {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 0;
+        }
+
+        .hero {
+            padding: 46px 42px 42px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(77, 217, 255, 0.08);
+            color: #bfeeff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0 0 18px;
+            max-width: 11ch;
+            font-size: clamp(38px, 6vw, 68px);
+            line-height: 0.95;
+            letter-spacing: -0.04em;
+        }
+
+        .lead {
+            max-width: 590px;
+            margin: 0 0 28px;
+            color: var(--hero-lead);
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        .alert-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .alert-card {
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: var(--card-bg);
+        }
+
+        .alert-card strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--alert-title);
+            font-size: 14px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .alert-card span {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .side {
+            position: relative;
+            padding: 42px 32px;
+            border-left: 1px solid var(--line);
+            background: var(--side-bg);
+        }
+
+        .shield {
+            position: relative;
+            width: 138px;
+            height: 138px;
+            margin-bottom: 24px;
+            border-radius: 32px;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.14), transparent 44%),
+                linear-gradient(135deg, rgba(255, 107, 61, 0.2), rgba(77, 217, 255, 0.2));
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 24px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .shield::before {
+            content: "!";
+            width: 82px;
+            height: 82px;
+            display: grid;
+            place-items: center;
+            border-radius: 24px;
+            background: linear-gradient(180deg, #ff7a4f, #ff4d36);
+            color: white;
+            font-size: 52px;
+            font-weight: 900;
+            box-shadow: 0 16px 30px rgba(255, 90, 54, 0.34);
+        }
+
+        .side h2 {
+            margin: 0 0 14px;
+            font-size: 24px;
+            letter-spacing: -0.03em;
+        }
+
+        .side p {
+            margin: 0 0 22px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .meta-box {
+            padding: 18px;
+            border-radius: 22px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .meta-label {
+            margin-bottom: 10px;
+            color: var(--meta-label);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .meta-value {
+            color: var(--alert-title);
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 14px;
+            line-height: 1.75;
+        }
+
+        .footer-note {
+            margin-top: 16px;
+            color: #6f8b9e;
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        @keyframes drift {
+            0%,
+            100% {
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+            50% {
+                transform: translate3d(0, -14px, 0) scale(1.04);
+            }
+        }
+
+        @media (max-width: 860px) {
+            body {
+                overflow: auto;
+            }
+
+            .scene {
+                padding: 18px;
+            }
+
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .side {
+                border-left: 0;
+                border-top: 1px solid var(--line);
+            }
+
+            .hero,
+            .side {
+                padding: 28px 22px;
+            }
+
+            .alert-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                max-width: none;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+    <script src="/js/config.js"></script>
+</head>
+<body>
+    <div class="scene">
+        <div class="orb orb-a"></div>
+        <div class="orb orb-b"></div>
+
+        <main class="shell">
+            <div class="topbar">
+                <div class="brand">
+                    <div class="brand-mark">S</div>
+                    <span>Sang dev security</span>
+                </div>
+                <div class="status-chip">
+                    <span class="status-dot"></span>
+                    Access revoked
+                </div>
+            </div>
+
+            <div class="content">
+                <section class="hero">
+                    <div class="eyebrow">Security Lock Active</div>
+                    <h1>IP cua ban dang bi khoa.</h1>
+                    <p class="lead">
+                        Hệ thống đã phát hiện hoạt động vi phạm hoặc bất thường từ địa chỉ này.
+                        Trong thời gian bị khóa, IP này sẽ không thể đăng ký, đăng nhập hoặc tiếp tục truy cập trang.
+                    </p>
+
+                    <div class="alert-grid">
+                        <div class="alert-card">
+                            <strong>Con lai</strong>
+                            <span id="block-countdown">Đang kiểm tra...</span>
+                        </div>
+                        <div class="alert-card">
+                            <strong>Mo khoa luc</strong>
+                            <span id="block-until">Đang kiểm tra...</span>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="side">
+                    <div class="shield"></div>
+                    <h2>Truy cập đã bị tạm dừng</h2>
+                    <p>
+                        Nếu đây là nhầm lẫn, vui lòng dừng thử nghiệm thêm trên IP này và liên hệ quản trị viên để kiểm tra lịch sử khóa.
+                    </p>
+
+                    <div class="meta-box">
+                        <div class="meta-label">Trang thai</div>
+                        <div class="meta-value" id="block-meta">
+                            ROUTE: BLOCKED<br>
+                            STATUS: CHECKING<br>
+                            IP: ...<br>
+                            REASON: ...
+                        </div>
+                    </div>
+
+                    <div class="footer-note" id="block-note">
+                        Hệ thống đang lấy thời gian khóa hiện tại. Khi đếm ngược về 0, trang sẽ tự động quay lại trang chủ.
+                    </div>
+                </aside>
+            </div>
+        </main>
+    </div>
+    <script>
+        (function initBlockedPageStatus() {
+            const countdownEl = document.getElementById('block-countdown');
+            const untilEl = document.getElementById('block-until');
+            const metaEl = document.getElementById('block-meta');
+            const noteEl = document.getElementById('block-note');
+            const buildApiUrl = window.buildApiUrl || ((path = '') => `/api/${String(path || '').replace(/^\/+/, '')}`);
+            const STATUS_ENDPOINT = buildApiUrl('security/block-status');
+            let blockUntilMs = 0;
+            let serverOffsetMs = 0;
+            let countdownTimerId = 0;
+            let refreshTimerId = 0;
+
+            function setText(element, text) {
+                if (element) {
+                    element.textContent = text;
+                }
+            }
+
+            function setHtml(element, html) {
+                if (element) {
+                    element.innerHTML = html;
+                }
+            }
+
+            function pad(value) {
+                return String(Math.max(0, value)).padStart(2, '0');
+            }
+
+            function getServerNow() {
+                return Date.now() + serverOffsetMs;
+            }
+
+            function formatDuration(remainingMs) {
+                const totalSeconds = Math.max(Math.ceil(remainingMs / 1000), 0);
+                const days = Math.floor(totalSeconds / 86400);
+                const hours = Math.floor((totalSeconds % 86400) / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                const clock = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+                return days > 0 ? `${days} ngày ${clock}` : clock;
+            }
+
+            function formatDateTime(timestamp) {
+                if (!timestamp) {
+                    return 'Không xác định';
+                }
+
+                return new Date(timestamp).toLocaleString('vi-VN');
+            }
+
+            function updateMeta(status) {
+                setHtml(metaEl, [
+                    'ROUTE: BLOCKED',
+                    `STATUS: ${status.active ? 'ACTIVE' : 'UNLOCKED'}`,
+                    `IP: ${status.ip || 'unknown'}`,
+                    `REASON: ${status.reason || 'none'}`
+                ].join('<br>'));
+            }
+
+            function scheduleStatusRefresh(delayMs = 15000) {
+                window.clearTimeout(refreshTimerId);
+                refreshTimerId = window.setTimeout(() => {
+                    void loadStatus();
+                }, delayMs);
+            }
+
+            function redirectHome(delayMs = 1200) {
+                setText(noteEl, 'Hết thời gian khóa. Đang quay lại trang chủ...');
+                window.setTimeout(() => {
+                    window.location.replace('/');
+                }, delayMs);
+            }
+
+            function tickCountdown() {
+                if (!blockUntilMs) {
+                    setText(countdownEl, '00:00:00');
+                    return;
+                }
+
+                const remainingMs = Math.max(blockUntilMs - getServerNow(), 0);
+                setText(countdownEl, formatDuration(remainingMs));
+
+                if (remainingMs <= 0) {
+                    window.clearInterval(countdownTimerId);
+                    countdownTimerId = 0;
+                    setText(noteEl, 'Đang kiểm tra lại trạng thái khóa...');
+                    void loadStatus();
+                }
+            }
+
+            function startCountdown() {
+                if (!countdownTimerId) {
+                    countdownTimerId = window.setInterval(tickCountdown, 1000);
+                }
+
+                tickCountdown();
+            }
+
+            async function loadStatus() {
+                try {
+                    const response = await fetch(STATUS_ENDPOINT, {
+                        credentials: 'include',
+                        cache: 'no-store'
+                    });
+                    const data = await response.json().catch(() => ({}));
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || 'Không thể lấy trạng thái khóa IP');
+                    }
+
+                    const status = data.data || {};
+                    serverOffsetMs = Number(status.serverNowMs || Date.now()) - Date.now();
+                    updateMeta(status);
+
+                    if (!status.active || !status.blockUntil) {
+                        blockUntilMs = 0;
+                        setText(countdownEl, '00:00:00');
+                        setText(untilEl, 'Đã hết khóa');
+                        redirectHome();
+                        return;
+                    }
+
+                    blockUntilMs = Number(status.blockUntil) || 0;
+                    setText(untilEl, formatDateTime(blockUntilMs));
+                    setText(noteEl, status.detail
+                        ? `Chi tiết: ${status.detail}`
+                        : 'Khi đếm ngược về 0, hệ thống sẽ tự động kiểm tra lại và mở truy cập nếu IP đã hết khóa.');
+
+                    startCountdown();
+                    scheduleStatusRefresh();
+                } catch (error) {
+                    setText(countdownEl, 'Không lấy được dữ liệu');
+                    setText(untilEl, 'Không xác định');
+                    setText(noteEl, 'Tạm thời chưa lấy được trạng thái khóa. Hệ thống sẽ thử lại trong giây lát...');
+                    scheduleStatusRefresh(5000);
+                }
+            }
+
+            void loadStatus();
+        })();
+    </script>
+    <script src="/js/security.js"></script>
+</body>
+</html>

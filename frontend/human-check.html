@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+   <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title> SHOP BÁN MÃ NGUỒN|SANG DEV</title>
+    <meta name="description" content="SangDevShop – nơi cung cấp mã nguồn chất lượng, giá hợp lý, hỗ trợ tận tình, giúp bạn xây dựng dự án nhanh chóng và chuyên nghiệp hơn 🚀">
+    <meta name="keywords" content="một món quà nhỏ nhưng đổi lại được nụ cười của người mình thương">
+    <link rel="canonical" href="https://sangdevshop.onrender.com/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sangdevshop.onrender.com/">
+    <meta property="og:title" content="SHOP BÁN MÃ NGUỒN|SANG DEV">
+    <meta property="og:description" content="🔥 Chạm vào nút xác minh để cảm nhận hơi ấm và nhìn lại những khoảnh khắc tuyệt vời nhất của Sang Dev Shop nhé!">
+    <meta property="og:image" content="https://th.bing.com/th/id/OIP.67twh2bFk2sauFTu2IWDrAHaF5?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3">
+    <meta property="og:image:alt" content="SANGDEV-SHOP" />
+    <meta property="og:site_name" content="SANG DEV SHOP" />
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SHOP BÁN MÃ NGUỒN|SANG DEV">
+    <meta name="twitter:description" content="DỊCH VỤ BÁN MÃ NGUỒN CHUYÊN NGHIỆP, HỖ TRỢ TẬN TÌNH, GIÁ CẢ HỢP LÝ. XÂY DỰNG DỰ ÁN NHANH CHÓNG VÀ CHUYÊN NGHIỆP HƠN VỚI SANG DEV SHOP! 🚀">
+    <meta name="twitter:image" content="https://th.bing.com/th/id/OIP.67twh2bFk2sauFTu2IWDrAHaF5?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3">
+
+    <link rel="icon" type="image/png" href="https://th.bing.com/th/id/OIP.67twh2bFk2sauFTu2IWDrAHaF5?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3" sizes="16x16">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        (function initTheme() {
+            try {
+                const storageKey = 'site-theme-mode';
+                const saved = localStorage.getItem(storageKey);
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const theme = saved === 'light' || saved === 'dark' ? saved : (prefersDark ? 'dark' : 'light');
+                document.documentElement.dataset.theme = theme;
+                document.documentElement.style.colorScheme = theme;
+            } catch (_) {
+                document.documentElement.dataset.theme = 'light';
+                document.documentElement.style.colorScheme = 'light';
+            }
+        })();
+    </script>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg0: #f6f8fc;
+            --bg1: #e8eef8;
+            --card: rgba(255, 255, 255, 0.82);
+            --line: rgba(148, 163, 184, 0.26);
+            --ink: #0f172a;
+            --muted: #475569;
+            --ok: #0f766e;
+            --warn: #b45309;
+            --bad: #be123c;
+            --badge-bg: rgba(15, 23, 42, 0.04);
+            --badge-ink: rgba(15, 23, 42, 0.78);
+            --panel-bg: rgba(255, 255, 255, 0.64);
+            --btn-primary-ink: rgba(255, 255, 255, 0.98);
+            --btn-outline-bg: rgba(255, 255, 255, 0.72);
+            --btn-outline-ink: #0f172a;
+            --glow-a: rgba(56, 189, 248, 0.24);
+            --glow-b: rgba(45, 212, 191, 0.20);
+            --glow-c: rgba(251, 113, 133, 0.12);
+        }
+
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --bg0: #070a10;
+            --bg1: #0b1220;
+            --card: rgba(255, 255, 255, 0.06);
+            --line: rgba(255, 255, 255, 0.10);
+            --ink: rgba(255, 255, 255, 0.92);
+            --muted: rgba(255, 255, 255, 0.72);
+            --ok: #2dd4bf;
+            --warn: #fbbf24;
+            --bad: #fb7185;
+            --badge-bg: rgba(255, 255, 255, 0.07);
+            --badge-ink: rgba(255, 255, 255, 0.86);
+            --panel-bg: rgba(255, 255, 255, 0.06);
+            --btn-primary-ink: rgba(0, 0, 0, 0.86);
+            --btn-outline-bg: rgba(255, 255, 255, 0.06);
+            --btn-outline-ink: rgba(255, 255, 255, 0.90);
+            --glow-a: rgba(45, 212, 191, 0.22);
+            --glow-b: rgba(56, 189, 248, 0.18);
+            --glow-c: rgba(251, 113, 133, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 18% 12%, var(--glow-b), transparent 55%),
+                radial-gradient(900px 500px at 86% 78%, var(--glow-a), transparent 55%),
+                radial-gradient(700px 420px at 70% 20%, var(--glow-c), transparent 60%),
+                linear-gradient(160deg, var(--bg0), var(--bg1));
+            overflow-x: hidden;
+            transition: background 0.25s ease, color 0.25s ease;
+        }
+
+        .gate-shell {
+            width: min(100%, 520px);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(14px);
+            position: relative;
+        }
+
+        .gate-shell::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: 26px;
+            background: conic-gradient(from 120deg, rgba(56, 189, 248, 0.55), rgba(45, 212, 191, 0.55), rgba(251, 113, 133, 0.40), rgba(56, 189, 248, 0.55));
+            filter: blur(18px);
+            opacity: 0.55;
+            z-index: -1;
+            transform: translate3d(0, 0, 0);
+            animation: gateGlow 10s ease-in-out infinite alternate;
+        }
+
+        @keyframes gateGlow {
+            0% { transform: translate3d(-6px, -4px, 0) rotate(-2deg); opacity: 0.35; }
+            100% { transform: translate3d(6px, 4px, 0) rotate(2deg); opacity: 0.55; }
+        }
+
+        .gate-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--badge-bg);
+            color: var(--badge-ink);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+        }
+
+        .gate-badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        h1 {
+            margin: 18px 0 10px;
+            font-size: clamp(28px, 5vw, 38px);
+            line-height: 1.08;
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .gate-stack {
+            display: grid;
+            gap: 16px;
+            margin-top: 22px;
+        }
+
+        .gate-panel {
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: var(--panel-bg);
+        }
+
+        .gate-panel strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .gate-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .gate-pill.is-ok {
+            background: rgba(45, 212, 191, 0.12);
+            color: var(--ok);
+        }
+
+        .gate-pill.is-warn {
+            background: rgba(251, 191, 36, 0.12);
+            color: var(--warn);
+        }
+
+        .gate-pill.is-block {
+            background: rgba(251, 113, 133, 0.12);
+            color: var(--bad);
+        }
+
+        .gate-recaptcha {
+            display: flex;
+            justify-content: center;
+            min-height: 78px;
+        }
+
+        .gate-status {
+            min-height: 24px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .gate-status.is-error {
+            color: var(--bad);
+            font-weight: 600;
+        }
+
+        .gate-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        button {
+            border: none;
+            border-radius: 14px;
+            padding: 12px 18px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.92), rgba(56, 189, 248, 0.92));
+            color: var(--btn-primary-ink);
+            min-width: 180px;
+        }
+
+        .btn-outline {
+            border: 1px solid var(--line);
+            background: var(--btn-outline-bg);
+            color: var(--btn-outline-ink);
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .gate-note {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        @media (max-width: 480px) {
+            .gate-shell {
+                padding: 22px 18px;
+                border-radius: 20px;
+            }
+
+            .gate-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .gate-actions button {
+                width: 100%;
+            }
+
+            .gate-recaptcha .g-recaptcha {
+                transform: scale(0.92);
+                transform-origin: center top;
+            }
+        }
+    </style>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <script src="/js/config.js"></script>
+</head>
+<body>
+    <main class="gate-shell">
+        <div class="gate-badge">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 2l7 4v6c0 5-3.2 9.6-7 10-3.8-.4-7-5-7-10V6l7-4z" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M8.2 12.1l2.4 2.5 5.2-5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Human Check
+        </div>
+        <h1>XÁC MINH ĐI (BOT HAY NGƯỜI )</h1>
+
+        <div class="gate-stack">
+            <section class="gate-panel" id="browser-gate-panel">
+                <strong>Check trinh duyet</strong>
+                <p id="browser-gate-hint">
+                    <span id="browser-gate-pill" class="gate-pill is-warn">...</span>
+                    <span id="browser-gate-name">Đang kiểm tra...</span>
+                </p>
+            </section>
+
+            <section class="gate-panel">
+                <strong>Xác nhận "Tôi không phải robot"</strong>
+                <div id="human-gate-recaptcha" class="gate-recaptcha"></div>
+                <div id="human-gate-status" class="gate-status"></div>
+            </section>
+
+            <div class="gate-actions">
+                <button type="button" id="human-gate-enter" class="btn-primary" disabled>Vao website</button>
+                <button type="button" id="human-gate-retry" class="btn-outline" hidden>Tai lai xac thuc</button>
+            </div>
+        </div>
+
+        <p class="gate-note">Neu hop xac thuc khong hien, thu bam "Tai lai xac thuc".</p>
+    </main>
+
+    <script>
+        (function() {
+            const recaptchaContainer = document.getElementById('human-gate-recaptcha');
+            const statusEl = document.getElementById('human-gate-status');
+            const enterBtn = document.getElementById('human-gate-enter');
+            const retryBtn = document.getElementById('human-gate-retry');
+            const browserHintEl = document.getElementById('browser-gate-hint');
+            const browserNameEl = document.getElementById('browser-gate-name');
+            const browserPillEl = document.getElementById('browser-gate-pill');
+            const buildApiUrl = window.buildApiUrl || ((path = '') => `/api/${String(path || '').replace(/^\/+/, '')}`);
+            const query = new URLSearchParams(window.location.search);
+            const nextPath = (() => {
+                const requested = query.get('next');
+                if (requested && requested.startsWith('/')) {
+                    return requested;
+                }
+
+                if (window.location.pathname === '/human-check.html') {
+                    return '/';
+                }
+
+                return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+            })();
+
+            let widgetId = null;
+            let config = null;
+            let isSubmitting = false;
+            let browserGate = {
+                status: 'warn', // ok | warn | block
+                allowed: true,
+                name: '',
+                reason: ''
+            };
+
+            function setStatus(message, type) {
+                statusEl.textContent = message || '';
+                statusEl.classList.toggle('is-error', type === 'error');
+            }
+
+            function setBrowserGateUi(state) {
+                if (!browserNameEl || !browserPillEl || !browserHintEl) {
+                    return;
+                }
+
+                const safeStatus = state?.status || 'warn';
+                const label = safeStatus === 'ok' ? 'OK' : safeStatus === 'block' ? 'BLOCK' : 'WARN';
+                browserPillEl.textContent = label;
+                browserPillEl.classList.toggle('is-ok', safeStatus === 'ok');
+                browserPillEl.classList.toggle('is-warn', safeStatus === 'warn');
+                browserPillEl.classList.toggle('is-block', safeStatus === 'block');
+
+                browserNameEl.textContent = state?.name || 'Không xác định';
+
+                const hint = state?.reason
+                    ? state.reason
+                    : safeStatus === 'ok'
+                        ? 'Trình duyệt tương thích. Bạn có thể tiếp tục.'
+                        : safeStatus === 'block'
+                            ? 'Trình duyệt không tương thích. Vui lòng đổi trình duyệt.'
+                            : 'Khuyen nghi dung Chrome/Edge/Firefox de trai nghiem on dinh.';
+                browserHintEl.textContent = hint;
+            }
+
+            function detectBrowserQuick() {
+                const ua = String(navigator.userAgent || '');
+                const vendor = String(navigator.vendor || '');
+
+                const isIE = /MSIE\s|Trident\//i.test(ua);
+                const isEdge = /Edg\//i.test(ua);
+                const isChrome = /Chrome\//i.test(ua) && !isEdge && !/OPR\//i.test(ua);
+                const isFirefox = /Firefox\//i.test(ua);
+                const isSafari = /Safari\//i.test(ua) && !isChrome && !isEdge && !/Chromium\//i.test(ua);
+                const isAndroid = /Android/i.test(ua);
+                const isIOS = /iPhone|iPad|iPod/i.test(ua);
+                const isWebView = (isAndroid && /wv\)/i.test(ua)) || (isIOS && /AppleWebKit/i.test(ua) && !isSafari);
+
+                const getVersion = (re) => {
+                    const m = ua.match(re);
+                    return m ? (m[1] || '') : '';
+                };
+
+                let name = 'Unknown';
+                let version = '';
+                if (isIE) {
+                    name = 'Internet Explorer';
+                    version = getVersion(/(?:MSIE\s(\d+)|rv:(\d+))/i) || '';
+                } else if (isEdge) {
+                    name = 'Microsoft Edge';
+                    version = getVersion(/Edg\/(\d+)/i);
+                } else if (isChrome) {
+                    name = vendor && /Google/i.test(vendor) ? 'Google Chrome' : 'Chromium';
+                    version = getVersion(/Chrome\/(\d+)/i);
+                } else if (isFirefox) {
+                    name = 'Mozilla Firefox';
+                    version = getVersion(/Firefox\/(\d+)/i);
+                } else if (isSafari) {
+                    name = 'Safari';
+                    version = getVersion(/Version\/(\d+)/i);
+                }
+
+                const display = `${name}${version ? ` ${version}` : ''}${isWebView ? ' (WebView)' : ''}`;
+                return { name: display, rawName: name, major: Number.parseInt(version || '0', 10) || 0, isIE, isEdge, isChrome, isFirefox, isSafari, isWebView };
+            }
+
+            function evaluateBrowserGate() {
+                const info = detectBrowserQuick();
+                const hasBasics =
+                    typeof fetch === 'function' &&
+                    typeof Promise !== 'undefined' &&
+                    typeof URLSearchParams !== 'undefined' &&
+                    typeof crypto !== 'undefined' &&
+                    typeof crypto.subtle !== 'undefined' &&
+                    typeof document !== 'undefined' &&
+                    typeof window !== 'undefined';
+
+                const webdriver = (() => {
+                    try { return navigator.webdriver === true; } catch (_) { return false; }
+                })();
+
+                let status = 'warn';
+                let allowed = true;
+                let reason = '';
+
+                if (!hasBasics || info.isIE || webdriver) {
+                    status = 'block';
+                    allowed = false;
+                    reason = 'Môi trường truy cập không phải trình duyệt thật. Tự động thoát...';
+                } else if (info.isWebView) {
+                    status = 'block';
+                    allowed = false;
+                    reason = 'Không hỗ trợ WebView. Tự động thoát...';
+                } else if (info.isChrome || info.isEdge || info.isFirefox || info.isSafari) {
+                    status = 'ok';
+                    allowed = true;
+                } else {
+                    status = 'block';
+                    allowed = false;
+                    reason = 'Không nhận diện được trình duyệt. Tự động thoát...';
+                }
+
+                return {
+                    status,
+                    allowed,
+                    name: info.name,
+                    reason
+                };
+            }
+
+            function forceExitNow() {
+                try { window.close(); } catch (_) {}
+                try { window.location.replace('about:blank'); } catch (_) {}
+                try { window.location.href = 'about:blank'; } catch (_) {}
+            }
+
+            function hasCaptchaResponse() {
+                if (!widgetId) return false;
+                if (!window.turnstile || typeof window.turnstile.getResponse !== 'function') return false;
+                const token = window.turnstile.getResponse(widgetId);
+                return Boolean(String(token || '').trim());
+            }
+
+            function syncButtons() {
+                const ready = hasCaptchaResponse() && browserGate.allowed !== false && !isSubmitting;
+                enterBtn.disabled = !ready;
+                enterBtn.textContent = isSubmitting ? 'Đang vào...' : 'Vào website';
+            }
+
+            function waitForTurnstile(timeoutMs) {
+                return new Promise((resolve, reject) => {
+                    const startedAt = Date.now();
+                    const timer = setInterval(() => {
+                        if (window.turnstile && typeof window.turnstile.render === 'function') {
+                            clearInterval(timer);
+                            resolve(window.turnstile);
+                            return;
+                        }
+
+                        if (Date.now() - startedAt >= timeoutMs) {
+                            clearInterval(timer);
+                            reject(new Error('Không tải được Turnstile từ Cloudflare.'));
+                        }
+                    }, 100);
+                });
+            }
+
+            async function loadConfig() {
+                const response = await fetch(buildApiUrl('security/human-gate-config'), {
+                    credentials: 'include',
+                    cache: 'no-store'
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.success) {
+                    throw new Error(payload.message || 'Không thể lấy cấu hình xác thực.');
+                }
+                return payload.data || {};
+            }
+
+            async function renderCaptcha(forceReload) {
+                widgetId = null;
+                recaptchaContainer.innerHTML = '';
+                retryBtn.hidden = true;
+                setStatus('Đang tải hộp xác thực...', '');
+                syncButtons();
+
+                try {
+                    config = await loadConfig();
+                    if (!config.enabled || !config.siteKey) {
+                        throw new Error('Turnstile chua duoc cau hinh tren server.');
+                    }
+
+                    if (forceReload && window.turnstile && typeof window.turnstile.reset === 'function') {
+                        try {
+                            window.turnstile.reset();
+                        } catch (_) {}
+                    }
+
+                    const turnstile = await waitForTurnstile(15000);
+                    widgetId = turnstile.render(recaptchaContainer, {
+                        sitekey: config.siteKey,
+                        size: 'normal',
+                        callback() {
+                            if (browserGate.allowed === false) {
+                                setStatus('Captcha OK, nhưng trình duyệt không tương thích. Vui lòng đổi trình duyệt.', 'error');
+                            } else {
+                                setStatus('Danh dau xong, bam vao website de tiep tuc.', '');
+                            }
+                            syncButtons();
+                        },
+                        'error-callback': () => {
+                            setStatus('Không thể tải Turnstile, thử lại.', 'error');
+                            retryBtn.hidden = false;
+                            syncButtons();
+                        },
+                        'expired-callback': () => {
+                            setStatus('Ma xac thuc het han, vui long lam lai.', 'error');
+                            syncButtons();
+                        }
+                    });
+                    setStatus('Đánh dấu "Tôi không phải robot" rồi bấm vào website.', '');
+                } catch (error) {
+                    widgetId = null;
+                    retryBtn.hidden = false;
+                    setStatus(error.message || 'Không thể tải hộp xác thực.', 'error');
+                }
+
+                syncButtons();
+            }
+
+            async function submitGate() {
+                if (isSubmitting || !widgetId) {
+                    return;
+                }
+
+                const token = window.turnstile && typeof window.turnstile.getResponse === 'function'
+                    ? window.turnstile.getResponse(widgetId)
+                    : '';
+
+                if (!token) {
+                    setStatus('Vui lòng xác nhận "Tôi không phải robot".', 'error');
+                    return;
+                }
+
+                if (browserGate.allowed === false) {
+                    setStatus('Trình duyệt không tương thích. Vui lòng đổi trình duyệt rồi thử lại.', 'error');
+                    return;
+                }
+
+                isSubmitting = true;
+                syncButtons();
+                setStatus('Đang xác minh...', '');
+
+                try {
+                    const response = await fetch(buildApiUrl('security/human-gate-verify'), {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            recaptcha_token: token
+                        })
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok || !payload.success) {
+                        throw new Error(payload.message || 'Không thể xác minh người dùng.');
+                    }
+
+                    window.location.replace(nextPath);
+                } catch (error) {
+                    isSubmitting = false;
+                    if (window.turnstile && typeof window.turnstile.reset === 'function' && widgetId) {
+                        window.turnstile.reset(widgetId);
+                    }
+                    setStatus(error.message || 'Không thể xác minh người dùng.', 'error');
+                    syncButtons();
+                }
+            }
+
+            enterBtn.addEventListener('click', submitGate);
+            retryBtn.addEventListener('click', () => {
+                void renderCaptcha(true);
+            });
+
+            browserGate = evaluateBrowserGate();
+            setBrowserGateUi(browserGate);
+            if (browserGate.allowed === false) {
+                setStatus('Vui lòng đổi trình duyệt để tiếp tục.', 'error');
+                setTimeout(forceExitNow, 250);
+            }
+            syncButtons();
+
+            void renderCaptcha(false);
+        })();
+    </script>
+</body>
+</html>

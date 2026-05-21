@@ -1,0 +1,55 @@
+<div class="container mxh-list-page">
+    <!-- Hero -->
+    <div class="mxh-list-hero">
+        <div class="mxh-list-hero-content">
+            <div class="mxh-hero-text-wrap">
+                <div class="mxh-list-hero-icon-box">
+                    <i class="fas fa-share-nodes"></i>
+                </div>
+                <h1 class="page-title">Tài khoản Mạng Xã Hội</h1>
+                <p class="section-subtitle">Facebook · TikTok · Instagram · YouTube · X · Zalo và nhiều nền tảng khác</p>
+            </div>
+            <div id="mxh-sell-btn-wrap"></div>
+        </div>
+    </div>
+
+    <!-- Platform filter tabs -->
+    <div class="mxh-platform-tabs-wrap">
+        <div class="mxh-platform-tabs" id="mxh-platform-tabs">
+            <button class="mxh-tab-btn active" data-platform="all">
+                <i class="fas fa-globe"></i> Tất cả
+            </button>
+        </div>
+    </div>
+
+    <!-- Category chips + Sort -->
+    <div class="mxh-filter-bar">
+        <div class="mxh-category-chips" id="mxh-category-chips">
+            <button class="mxh-chip active" data-cat="">Tất cả loại</button>
+        </div>
+        <div class="mxh-sort-wrap">
+            <select id="mxh-sort" class="mxh-sort-select">
+                <option value="newest">Mới nhất</option>
+                <option value="price_asc">Giá tăng dần</option>
+                <option value="price_desc">Giá giảm dần</option>
+                <option value="popular">Phổ biến</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Product grid -->
+    <div id="mxh-grid" class="mxh-grid"></div>
+
+    <!-- Pagination -->
+    <div id="mxh-pagination" class="pagination"></div>
+</div>
+
+<!-- MXH Account Detail Modal -->
+<div id="mxh-detail-modal" class="mxh-detail-modal-overlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="mxh-detail-modal">
+        <button class="mxh-detail-close" id="mxh-detail-close" aria-label="Đóng">
+            <i class="fas fa-xmark"></i>
+        </button>
+        <div id="mxh-detail-content" class="mxh-detail-content"></div>
+    </div>
+</div>
