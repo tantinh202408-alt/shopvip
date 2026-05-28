@@ -3,7 +3,7 @@
 // File: backend/services/authService.js
 // ============================================
 
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');

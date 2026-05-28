@@ -6,7 +6,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const db = require('../config/database');
 const crypto = require('crypto');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const notificationService = require('./notificationService');
 const { processDepositApproval } = require('./depositApprovalService');
 const { getArchive } = require('./archiveService');

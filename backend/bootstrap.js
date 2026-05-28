@@ -3,7 +3,7 @@
 // Shared initialization for local server and serverless runtimes
 // ============================================
 
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const db = require('./config/database');
 const { initTelegramBot } = require('./services/telegramBackupService');
 const walletService = require('./services/walletService');

@@ -4,7 +4,7 @@
 // ============================================
 
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const router = express.Router();
 const apiKeyAuth = require('../middleware/apiKeyAuth');
 const db = require('../config/database');
