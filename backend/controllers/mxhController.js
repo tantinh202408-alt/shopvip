@@ -148,6 +148,32 @@ async function resolveMxhCategoryId(rawValue) {
     return Number(rows[0]?.id || 0);
 }
 
+exports.getStats = async (req, res) => {
+    try {
+        const [[rows]] = await Promise.all([
+            db.execute(`
+                SELECT
+                    (SELECT COUNT(*) FROM mxh_accounts) AS created_accounts,
+                    (SELECT COUNT(*) FROM mxh_accounts WHERE status = 'sold') AS sold_accounts,
+                    (SELECT COUNT(DISTINCT buyer_id) FROM mxh_accounts WHERE buyer_id IS NOT NULL AND status = 'sold') AS buyer_count
+            `)
+        ]);
+
+        const data = rows || {};
+        res.json({
+            success: true,
+            data: {
+                created_accounts: Number(data.created_accounts || 0),
+                sold_accounts: Number(data.sold_accounts || 0),
+                buyer_count: Number(data.buyer_count || 0)
+            }
+        });
+    } catch (error) {
+        console.error('Error in getStats:', error);
+        res.status(500).json({ success: false, message: 'Loi server khi lay thong ke MXH' });
+    }
+};
+
 // Get categories
 exports.getCategories = async (req, res) => {
     try {

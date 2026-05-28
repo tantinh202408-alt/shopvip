@@ -32,6 +32,9 @@ async function processDepositApproval(requestId, {
         const request = await getRequestById(connection, requestId);
         const newStatus = approve ? 'approved' : 'rejected';
 
+        console.log(`[DEBUG] Deposit Approval: Processing request ${requestId}. Current status: ${request.status}, New status: ${newStatus}`);
+        console.log(`[DEBUG] Deposit Approval: Request details: `, request);
+
         const [updateResult] = await connection.execute(
             `UPDATE deposit_requests
              SET status = ?, admin_note = ?, approved_by = COALESCE(?, approved_by), processed_at = datetime('now')

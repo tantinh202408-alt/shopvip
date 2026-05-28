@@ -1958,6 +1958,47 @@ window.pageInit = async function(params, query = {}) {
                 </div>
 
                 <div class="settings-section">
+                    <button type="button" class="settings-header">Voucher / Sự kiện giảm giá</button>
+                    <div class="settings-body">
+                        <form id="product-sale-setting-form" class="form-grid form-grid-2">
+                            <div class="form-group full">
+                                <label class="switch-row">
+                                    <input type="checkbox" name="product_sale_enabled">
+                                    <span class="switch-text">Bật giảm giá toàn hệ thống</span>
+                                </label>
+                                <small>Giảm giá này không áp dụng cho sản phẩm miễn phí.</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Tên sự kiện</label>
+                                <input type="text" name="product_sale_title" placeholder="VD: Flash Sale cuối tuần">
+                            </div>
+                            <div class="form-group">
+                                <label>Phần trăm giảm</label>
+                                <input type="number" name="product_sale_percent" min="0" max="100" step="0.1" placeholder="VD: 15">
+                            </div>
+                            <div class="form-group">
+                                <label>Phạm vi áp dụng</label>
+                                <select name="product_sale_scope">
+                                    <option value="all">Tất cả sản phẩm</option>
+                                    <option value="category">Theo danh mục</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>ID danh mục áp dụng</label>
+                                <input type="text" name="product_sale_category_ids" placeholder="VD: 1,2,3">
+                            </div>
+                            <div class="form-group full">
+                                <label>Ghi chú hiển thị</label>
+                                <textarea name="product_sale_note" rows="3" placeholder="VD: Giảm giá trong 48 giờ"></textarea>
+                            </div>
+                            <div class="form-group full">
+                                <button type="submit" class="btn-primary">Lưu giảm giá</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <button type="button" class="settings-header">Nội dung trang chủ</button>
                     <div class="settings-body">
                         <form id="hero-setting-form" class="form-grid form-grid-2">
@@ -2274,16 +2315,25 @@ window.pageInit = async function(params, query = {}) {
                         spin: 'fas fa-dharmachakra',
                         checkin: 'fas fa-calendar-check',
                         mission: 'fas fa-tasks',
-                        community: 'fas fa-users'
+                        community: 'fas fa-users',
+                        mxh: 'fas fa-share-nodes'
                     };
                     return icons[key] || 'fas fa-cog';
                 };
+
+                const settingsRes = await api.get('/settings', { keys: 'feature_lock_mxh' });
+                const mxhLocked = settingsRes.success && (settingsRes.data?.feature_lock_mxh === 'true' || settingsRes.data?.feature_lock_mxh === '1');
+
+                const featureLocks = [
+                    ...(Array.isArray(res.data) ? res.data.filter(f => f.key !== 'mxh') : []),
+                    { key: 'mxh', isLocked: mxhLocked, label: 'Mạng xã hội' }
+                ];
 
                 list.style.display = 'grid';
                 list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
                 list.style.gap = '20px';
 
-                list.innerHTML = res.data.map(f => `
+                list.innerHTML = featureLocks.map(f => `
                     <div class="feature-lock-card ${f.isLocked ? 'is-locked' : ''}" style="display:flex; align-items:center; gap:16px; padding:20px; background:rgba(30,41,59,0.5); border:1px solid rgba(255,255,255,0.1); border-radius:16px; transition:0.3s;">
                         <div class="feature-icon-wrapper" style="width:48px; height:48px; background:rgba(99,102,241,0.1); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; color:#818cf8;">
                             <i class="${getIcon(f.key)}"></i>
@@ -2418,6 +2468,65 @@ window.pageInit = async function(params, query = {}) {
                 await api.put('/admin/settings/bank_qr_url', { value: bankForm.bank_qr_url.value.trim() });
                 await api.put('/admin/settings/bank_note', { value: bankForm.bank_note.value.trim() });
                 showToast('Đã cập nhật thông tin ngân hàng', 'success');
+            });
+        }
+
+        const saleForm = document.getElementById('product-sale-setting-form');
+        if (saleForm) {
+            const saleKeys = [
+                'product_sale_enabled',
+                'product_sale_title',
+                'product_sale_note',
+                'product_sale_scope',
+                'product_sale_percent',
+                'product_sale_category_ids'
+            ];
+
+            try {
+                const res = await api.get('/settings', { keys: saleKeys.join(',') });
+                if (res.success) {
+                    saleForm.product_sale_enabled.checked = ['true', '1', 'yes'].includes(String(res.data.product_sale_enabled).toLowerCase());
+                    saleForm.product_sale_title.value = res.data.product_sale_title || '';
+                    saleForm.product_sale_note.value = res.data.product_sale_note || '';
+                    saleForm.product_sale_scope.value = res.data.product_sale_scope || 'all';
+                    saleForm.product_sale_percent.value = res.data.product_sale_percent ?? '';
+                    saleForm.product_sale_category_ids.value = res.data.product_sale_category_ids || '';
+                }
+            } catch (error) {
+                // ignore
+            }
+
+            const syncSaleScopeState = () => {
+                const scope = saleForm.product_sale_scope.value;
+                const categoryGroup = saleForm.product_sale_category_ids?.closest('.form-group');
+                if (categoryGroup) {
+                    categoryGroup.hidden = scope !== 'category';
+                }
+            };
+
+            syncSaleScopeState();
+            saleForm.product_sale_scope.addEventListener('change', syncSaleScopeState);
+
+            saleForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const payload = {
+                    product_sale_enabled: saleForm.product_sale_enabled.checked ? 'true' : 'false',
+                    product_sale_title: saleForm.product_sale_title.value.trim(),
+                    product_sale_note: saleForm.product_sale_note.value.trim(),
+                    product_sale_scope: saleForm.product_sale_scope.value,
+                    product_sale_percent: saleForm.product_sale_percent.value.trim(),
+                    product_sale_category_ids: saleForm.product_sale_category_ids.value.trim()
+                };
+
+                try {
+                    for (const [key, value] of Object.entries(payload)) {
+                        await api.put(`/admin/settings/${key}`, { value });
+                    }
+                    showToast('Đã lưu giảm giá', 'success');
+                } catch (error) {
+                    showToast(error.message || 'Không thể lưu giảm giá', 'error');
+                }
             });
         }
 

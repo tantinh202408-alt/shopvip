@@ -80,15 +80,17 @@ async function getConnection() {
     };
 }
 
-// Test connection
-execute('SELECT 1')
-    .then(() => {
-        console.log('? Turso database connected successfully');
-    })
-    .catch(err => {
-        console.error('? Turso database connection failed:', err.message);
-        process.exit(1);
-    });
+// Optional startup probe. Keep this off by default so serverless runtimes
+// do not perform a network call during module load.
+if (String(process.env.DB_HEALTHCHECK_ON_STARTUP || '').trim() === '1') {
+    execute('SELECT 1')
+        .then(() => {
+            console.log('Turso database connected successfully');
+        })
+        .catch(err => {
+            console.error('Turso database connection probe failed:', err.message);
+        });
+}
 
 module.exports = {
     execute,

@@ -1225,6 +1225,7 @@ router.get('/deposit-requests', async (req, res) => {
 router.put('/deposit-requests/:id/approve', async (req, res) => {
     try {
         const { approve = true, admin_note } = req.body;
+        console.log(`[DEBUG] Admin Route: Approving deposit request ${req.params.id}. Approve: ${approve}, Admin Note: ${admin_note}, Approved By: ${req.user.id}`);
         const result = await processDepositApproval(req.params.id, {
             approve,
             adminNote: admin_note,

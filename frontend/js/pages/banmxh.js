@@ -26,12 +26,7 @@ window.pageInit = async function () {
         { id: 'tiktok-verify', name: 'TikTok Verify', platform: 'tiktok', slug: 'tiktok-verify', icon: 'fab fa-tiktok', color: '#010101' },
         { id: 'ig-via', name: 'IG Via', platform: 'instagram', slug: 'ig-via', icon: 'fab fa-instagram', color: '#e1306c' },
         { id: 'ig-clone', name: 'IG Clone', platform: 'instagram', slug: 'ig-clone', icon: 'fab fa-instagram', color: '#e1306c' },
-        { id: 'ig-checkpoint', name: 'IG Checkpoint', platform: 'instagram', slug: 'ig-checkpoint', icon: 'fab fa-instagram', color: '#e1306c' },
-        { id: 'youtube-account', name: 'YouTube', platform: 'youtube', slug: 'youtube-account', icon: 'fab fa-youtube', color: '#ff0000' },
-        { id: 'x-twitter', name: 'X / Twitter', platform: 'twitter', slug: 'x-twitter', icon: 'fab fa-x-twitter', color: '#000000' },
-        { id: 'zalo-account', name: 'Zalo', platform: 'zalo', slug: 'zalo-account', icon: 'fas fa-comment-dots', color: '#0068ff' },
-        { id: 'telegram-account', name: 'Telegram', platform: 'telegram', slug: 'telegram-account', icon: 'fab fa-telegram', color: '#26a5e4' },
-        { id: 'other-account', name: 'Khác', platform: 'other', slug: 'other-account', icon: 'fas fa-ellipsis', color: '#64748b' }
+        { id: 'ig-checkpoint', name: 'IG Checkpoint', platform: 'instagram', slug: 'ig-checkpoint', icon: 'fab fa-instagram', color: '#e1306c' }
     ];
 
     // ── State ─────────────────────────────────────────────────────────────
@@ -204,12 +199,13 @@ window.pageInit = async function () {
         try {
             const res = await api.get('/mxh/categories');
             const apiCategories = res.success && Array.isArray(res.data) ? res.data : [];
-            allCategories = mergeCategories(apiCategories, getFallbackCategories());
+            allCategories = mergeCategories(apiCategories, getFallbackCategories())
+                .filter(cat => ['facebook', 'tiktok', 'instagram'].includes(cat.platform || ''));
             dynamicPlatforms = buildDynamicPlatforms(allCategories);
             renderPlatformGrid();
             renderPlatformSelect();
         } catch (e) {
-            allCategories = getFallbackCategories();
+            allCategories = getFallbackCategories().filter(cat => ['facebook', 'tiktok', 'instagram'].includes(cat.platform || ''));
             dynamicPlatforms = buildDynamicPlatforms(allCategories);
             renderPlatformGrid();
             renderPlatformSelect();

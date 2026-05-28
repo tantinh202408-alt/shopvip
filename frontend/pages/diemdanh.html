@@ -1,46 +1,89 @@
 <div class="container reward-page reward-checkin-page">
     <div class="reward-layout">
         <section class="reward-main">
-            <div class="section-card checkin-highlight-card">
-                <div class="checkin-highlight-surface">
-                    <div class="checkin-highlight-top">
-                        <div>
-                            <div id="checkin-next-kicker" class="profile-section-kicker">Trạng thái hôm nay</div>
-                            <h2 id="checkin-next-title" class="checkin-highlight-title">Sẵn sàng</h2>
-                            <p id="checkin-help-text" class="section-subtitle">Bấm điểm danh để nhận thưởng hôm nay.</p>
-                        </div>
-                        <div id="checkin-next-amount" class="checkin-highlight-amount">0đ</div>
-                    </div>
-
-                    <div class="checkin-insight-grid">
-                        <div class="checkin-insight-card">
-                            <span>Streak</span>
-                            <strong id="checkin-streak-value">0 ngày</strong>
-                        </div>
-                        <div class="checkin-insight-card">
-                            <span>Ngày</span>
-                            <strong id="checkin-today-value">--</strong>
-                        </div>
-                        <div class="checkin-insight-card">
-                            <span>Trạng thái</span>
-                            <strong id="checkin-status-text">Đang tải</strong>
-                        </div>
-                    </div>
-
-                    <div class="checkin-actions">
-                        <button id="checkin-claim-btn" class="btn-primary">Điểm danh hôm nay</button>
+            <div class="checkin-hero-shell">
+                <div class="checkin-hero-copy">
+                    <div class="checkin-eyebrow">Điểm danh mỗi ngày</div>
+                    <h1 id="checkin-page-title" class="page-title">Sẵn sàng nhận thưởng</h1>
+                    <p id="checkin-page-subtitle" class="section-subtitle">Bấm điểm danh để giữ chuỗi streak và nhận thưởng tăng dần.</p>
+                    <div class="checkin-hero-badges">
+                        <span class="badge badge-info">Chuỗi thưởng 7 ngày</span>
+                        <span class="badge badge-success">Cập nhật theo múi giờ</span>
+                        <span id="checkin-timezone-badge" class="badge badge-warning">GMT+7</span>
                     </div>
                 </div>
+
+                <div class="checkin-hero-panel">
+                    <div class="section-card checkin-highlight-card">
+                        <div class="checkin-highlight-surface">
+                            <div class="checkin-highlight-top">
+                                <div>
+                                    <div id="checkin-next-kicker" class="profile-section-kicker">Trạng thái hôm nay</div>
+                                    <h2 id="checkin-next-title" class="checkin-highlight-title">Sẵn sàng</h2>
+                                    <p id="checkin-help-text" class="section-subtitle">Bấm điểm danh để nhận thưởng hôm nay.</p>
+                                </div>
+                                <div id="checkin-next-amount" class="checkin-highlight-amount">0đ</div>
+                            </div>
+
+                            <div class="checkin-insight-grid">
+                                <div class="checkin-insight-card">
+                                    <span>Streak</span>
+                                    <strong id="checkin-streak-value">0 ngày</strong>
+                                </div>
+                                <div class="checkin-insight-card">
+                                    <span>Ngày</span>
+                                    <strong id="checkin-today-value">--</strong>
+                                </div>
+                                <div class="checkin-insight-card">
+                                    <span>Trạng thái</span>
+                                    <strong id="checkin-status-text">Đang tải</strong>
+                                </div>
+                            </div>
+
+                            <div class="checkin-actions">
+                                <button id="checkin-claim-btn" class="btn-primary">Điểm danh hôm nay</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card checkin-progress-card">
+                <div class="section-header">
+                    <div>
+                        <h3 class="section-title">Lộ trình nhận thưởng</h3>
+                        <p class="section-subtitle">Theo dõi 7 mốc thưởng và xem rõ ngày tiếp theo cần nhận.</p>
+                    </div>
+                    <span class="badge badge-info">7 ngày</span>
+                </div>
+                <div id="checkin-progress" class="checkin-progress-showcase"></div>
             </div>
 
             <div class="section-card checkin-history-card">
                 <div class="section-header">
                     <div>
                         <h3 class="section-title">Lịch sử điểm danh</h3>
+                        <p class="section-subtitle">Các lần nhận thưởng gần nhất của bạn.</p>
                     </div>
                 </div>
                 <div id="checkin-history" class="reward-history"></div>
             </div>
         </section>
+
+        <aside class="reward-side">
+            <div class="section-card checkin-side-card checkin-security-card">
+                <div class="section-header">
+                    <div>
+                        <h3 class="section-title">Lưu ý</h3>
+                        <p class="section-subtitle">Mấy điểm chính để bạn không bị hụt streak.</p>
+                    </div>
+                </div>
+                <ul class="reward-note-list checkin-note-list">
+                    <li>Điểm danh 1 lần mỗi ngày theo múi giờ hệ thống.</li>
+                    <li>Giữ streak liên tục để nhận thưởng ngày cao hơn.</li>
+                    <li>Hệ thống tự chặn trùng lặp và cộng số dư ngay sau khi xác nhận.</li>
+                </ul>
+            </div>
+        </aside>
     </div>
 </div>

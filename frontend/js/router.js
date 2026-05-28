@@ -77,6 +77,14 @@ class Router {
         }
         // Check feature lock
         if (route.feature && window.appInstance) {
+            const currentUser = Auth.getCurrentUser();
+            const canBypassFeatureLock = currentUser && currentUser.role === 'admin';
+
+            if (canBypassFeatureLock) {
+                await this.loadPage(route, query);
+                return;
+            }
+
             // Re-sync feature locks before navigating to ensure real-time status
             if (typeof window.appInstance.syncLockedFeatures === 'function') {
                 await window.appInstance.syncLockedFeatures();

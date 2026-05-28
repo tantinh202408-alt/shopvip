@@ -1,4 +1,7 @@
 window.pageInit = async function() {
+    const pageTitleEl = document.getElementById('checkin-page-title');
+    const pageSubtitleEl = document.getElementById('checkin-page-subtitle');
+    const timezoneBadgeEl = document.getElementById('checkin-timezone-badge');
     const nextKickerEl = document.getElementById('checkin-next-kicker');
     const nextTitleEl = document.getElementById('checkin-next-title');
     const nextAmountEl = document.getElementById('checkin-next-amount');
@@ -6,6 +9,7 @@ window.pageInit = async function() {
     const streakValueEl = document.getElementById('checkin-streak-value');
     const todayValueEl = document.getElementById('checkin-today-value');
     const statusTextEl = document.getElementById('checkin-status-text');
+    const progressEl = document.getElementById('checkin-progress');
     const historyEl = document.getElementById('checkin-history');
     const claimBtn = document.getElementById('checkin-claim-btn');
 
@@ -17,11 +21,12 @@ window.pageInit = async function() {
             if (!state || isClaiming) return;
 
             if (!state.enabled) {
-                showToast('ính năng điểm danh đang tạm tắt', 'warning');
+                showToast('Tính năng điểm danh đang tạm tắt', 'warning');
                 return;
             }
+
             if (!state.canClaim) {
-                showToast('Hôm nay bạn đã điểm danh rồi', 'warning');
+                showToast('Hôm nay bạn đã điểm danh rồi', 'warning');
                 return;
             }
 
@@ -32,7 +37,7 @@ window.pageInit = async function() {
             try {
                 const response = await api.post('/wallet/daily-checkin/claim');
                 if (!response.success) {
-                    throw new Error(response.message || 'ko thể điểm danh');
+                    throw new Error(response.message || 'Không thể điểm danh');
                 }
 
                 const result = response.data || {};
@@ -42,11 +47,11 @@ window.pageInit = async function() {
                 showToast(
                     result.reward && Number(result.reward.amount || 0) > 0
                         ? `Bạn vừa nhận ${formatMoney(Number(result.reward.amount || 0))}`
-                        : 'điểm danh thành công',
+                        : 'Điểm danh thành công',
                     'success'
                 );
             } catch (error) {
-                showToast(error.message || 'ĐIỂM DANH KO THÀNH CÔNG', 'error');
+                showToast(error.message || 'Điểm danh không thành công', 'error');
                 await loadState();
             } finally {
                 isClaiming = false;
@@ -62,12 +67,13 @@ window.pageInit = async function() {
         try {
             const response = await api.get('/wallet/daily-checkin', { forceRefresh: true });
             if (!response.success) {
-                throw new Error(response.message || 'ĐIỂM DANH KO THÀNH CÔNG');
+                throw new Error(response.message || 'Điểm danh không thành công');
             }
+
             state = response.data || {};
             renderState();
         } catch (error) {
-            renderError(error.message || 'ĐIỂM DANH KO THÀNH CÔNG');
+            renderError(error.message || 'Điểm danh không thành công');
         }
     }
 
@@ -77,9 +83,13 @@ window.pageInit = async function() {
         const rewards = Array.isArray(state.rewards) ? state.rewards : [];
         const progress = getCycleProgress();
 
+        if (pageTitleEl) pageTitleEl.textContent = state.title || 'Sẵn sàng nhận thưởng';
+        if (pageSubtitleEl) pageSubtitleEl.textContent = state.subtitle || 'Bấm điểm danh để giữ chuỗi streak và nhận thưởng tăng dần.';
+        if (timezoneBadgeEl) timezoneBadgeEl.textContent = formatTimezoneLabel(state.timezone);
         if (todayValueEl) todayValueEl.textContent = state.todayKey || '--';
 
         renderHighlights(rewards, progress);
+        renderProgress(rewards, progress);
         renderHistory(Array.isArray(state.history) ? state.history : []);
     }
 
@@ -87,7 +97,7 @@ window.pageInit = async function() {
         if (!nextTitleEl || !nextAmountEl || !helpTextEl || !claimBtn) return;
 
         const todayClaim = state.todayClaim || null;
-        const nextReward = rewards.find(item => Number(item.day || 1) === progress.activeDay) || rewards[0] || { day: 1, amount: 0, label: 'Ngày 1' };
+        const nextReward = rewards.find(item => Number(item.day || 1) === progress.activeDay) || rewards[0] || { day: 1, amount: 0, label: 'Ngày 1' };
         const highlightAmount = todayClaim ? Number(todayClaim.rewardAmount || 0) : Number(nextReward.amount || 0);
         const currentStreak = Number(
             todayClaim?.consecutiveDays
@@ -97,44 +107,74 @@ window.pageInit = async function() {
         );
 
         if (streakValueEl) {
-            streakValueEl.textContent = currentStreak > 0 ? `${currentStreak} ngày` : '0';
+            streakValueEl.textContent = currentStreak > 0 ? `${currentStreak} ngày` : '0';
         }
 
         if (nextKickerEl) {
-            nextKickerEl.textContent = todayClaim ? 'ĐÃ NHẬN HÔM NAY' : 'Trạng thái hôm nay';
+            nextKickerEl.textContent = todayClaim ? 'ĐÃ NHẬN HÔM NAY' : 'Trạng thái hôm nay';
         }
 
         if (!state.enabled) {
-            nextTitleEl.textContent = 'Tạm khóa';
+            nextTitleEl.textContent = 'Tạm khóa';
             nextAmountEl.textContent = formatMoney(0);
-            helpTextEl.textContent = 'Admin đã tắc điểm danh rồi';
-            if (statusTextEl) statusTextEl.textContent = 'Tạm khóa';
+            helpTextEl.textContent = 'Admin đang tắt tính năng điểm danh.';
+            if (statusTextEl) statusTextEl.textContent = 'Tạm khóa';
             claimBtn.disabled = true;
             return;
         }
 
         if (todayClaim) {
-            nextTitleEl.textContent = 'Đã điểm danh';
+            nextTitleEl.textContent = 'Đã điểm danh';
             nextAmountEl.textContent = formatMoney(highlightAmount);
-            helpTextEl.textContent = 'Quay lại vào ngày mai để tiếp tục streak.';
+            helpTextEl.textContent = 'Quay lại vào ngày mai để tiếp tục streak.';
             if (statusTextEl) statusTextEl.textContent = 'Đã nhận';
             claimBtn.disabled = true;
             return;
         }
 
-        nextTitleEl.textContent = state.streakBroken ? 'Bắt đầu lại' : 'sẵn sàng';
+        nextTitleEl.textContent = state.streakBroken ? 'Bắt đầu lại' : 'Sẵn sàng';
         nextAmountEl.textContent = formatMoney(highlightAmount);
         helpTextEl.textContent = state.streakBroken
             ? 'Chuỗi đã reset. Điểm danh ngay để bắt đầu lại.'
             : 'Nhấn điểm danh để duy trì chuỗi streak và nhận thưởng lớn hơn.';
-        if (statusTextEl) statusTextEl.textContent = state.streakBroken ? 'Reset' : 'có thể nhận';
+        if (statusTextEl) statusTextEl.textContent = state.streakBroken ? 'Reset' : 'Có thể nhận';
         claimBtn.disabled = isClaiming ? true : !state.canClaim;
+    }
+
+    function renderProgress(rewards, progress) {
+        if (!progressEl) return;
+
+        if (!rewards.length) {
+            progressEl.innerHTML = '<div class="reward-empty">Chưa có lộ trình thưởng để hiển thị.</div>';
+            return;
+        }
+
+        progressEl.innerHTML = rewards.map((item, index) => {
+            const day = Number(item.day || index + 1);
+            const amount = formatMoney(Number(item.amount || 0));
+            const isClaimed = day <= Number(progress.claimedCount || 0);
+            const isNext = day === Number(progress.activeDay || 1);
+            const stateLabel = isClaimed ? 'Đã nhận' : (isNext ? 'Hôm nay' : 'Sắp tới');
+            const rewardLabel = escapeHtml(item.label || `Ngày ${day}`);
+
+            return `
+                <article class="checkin-day-chip ${isClaimed ? 'is-claimed' : ''} ${isNext ? 'is-next' : ''}">
+                    <div class="checkin-day-chip-top">
+                        <span class="checkin-day-chip-state">${stateLabel}</span>
+                        <strong>Ngày ${day}</strong>
+                    </div>
+                    <div class="checkin-day-chip-amount">${amount}</div>
+                    <div class="checkin-day-chip-title">${rewardLabel}</div>
+                </article>
+            `;
+        }).join('');
     }
 
     function renderHistory(items) {
         if (!historyEl) return;
+
         if (!items.length) {
-            historyEl.innerHTML = '<div class="reward-empty">Chưa có lịch sữ điểm danh.</div>';
+            historyEl.innerHTML = '<div class="reward-empty">Chưa có lịch sử điểm danh.</div>';
             return;
         }
 
@@ -143,7 +183,7 @@ window.pageInit = async function() {
                 <div class="checkin-history-marker"></div>
                 <div class="checkin-history-body">
                     <strong>${escapeHtml(item.claimDate || '')}</strong>
-                    <div class="reward-history-meta">Streak ${Number(item.consecutiveDays || 1)} ngày</div>
+                    <div class="reward-history-meta">Streak ${Number(item.consecutiveDays || 1)} ngày</div>
                 </div>
                 <div class="reward-history-amount is-positive">${formatMoney(Number(item.rewardAmount || 0))}</div>
             </div>
@@ -152,9 +192,10 @@ window.pageInit = async function() {
 
     function renderError(message) {
         if (helpTextEl) helpTextEl.textContent = message;
-        if (statusTextEl) statusTextEl.textContent = 'Loi';
+        if (statusTextEl) statusTextEl.textContent = 'Lỗi';
         if (claimBtn) claimBtn.disabled = true;
         if (historyEl) historyEl.innerHTML = '<div class="reward-empty">Không thể tải dữ liệu.</div>';
+        if (progressEl) progressEl.innerHTML = '<div class="reward-empty">Không thể tải lộ trình thưởng.</div>';
     }
 
     function getCycleProgress() {
@@ -182,6 +223,15 @@ window.pageInit = async function() {
         if (!Number.isFinite(Number(balance))) return;
         Auth.updateUser({ balance: Number(balance) });
         window.appInstance?.updateUserSection?.();
+    }
+
+    function formatTimezoneLabel(timezone) {
+        const value = String(timezone || '').trim();
+        if (!value) return 'GMT+7';
+        if (value === 'Asia/Bangkok' || value === 'Asia/Ho_Chi_Minh') {
+            return 'GMT+7';
+        }
+        return value;
     }
 
     function escapeHtml(value = '') {

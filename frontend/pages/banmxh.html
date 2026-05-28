@@ -7,7 +7,7 @@
             </div>
             <div>
                 <h1 class="page-title">Đăng bán tài khoản MXH</h1>
-                <p class="section-subtitle">Facebook · TikTok · Instagram · YouTube · và nhiều nền tảng khác</p>
+                <p class="section-subtitle">Facebook · TikTok · Instagram</p>
             </div>
         </div>
         <div class="mxh-sell-hero-badges">
@@ -54,13 +54,8 @@
                         <option value="facebook">Facebook</option>
                         <option value="tiktok">TikTok</option>
                         <option value="instagram">Instagram</option>
-                        <option value="youtube">YouTube</option>
-                        <option value="twitter">X / Twitter</option>
-                        <option value="zalo">Zalo</option>
-                        <option value="telegram">Telegram</option>
-                        <option value="other">Khác</option>
                     </select>
-                    <small>Chọn Facebook, TikTok, Instagram... trước, sau đó chọn loại con bên dưới.</small>
+                    <small>Chọn Facebook, TikTok hoặc Instagram trước, sau đó chọn loại con bên dưới.</small>
                 </div>
                 <div class="mxh-platform-grid" id="mxh-platform-grid">
                     <!-- Rendered by JS -->
@@ -85,189 +80,9 @@
                             <option value="ig-clone">IG Clone</option>
                             <option value="ig-checkpoint">IG Checkpoint</option>
                         </optgroup>
-                        <optgroup label="Khác">
-                            <option value="youtube-account">YouTube</option>
-                            <option value="x-twitter">X / Twitter</option>
-                            <option value="zalo-account">Zalo</option>
-                            <option value="telegram-account">Telegram</option>
-                            <option value="other-account">Khác</option>
-                        </optgroup>
                     </select>
                     <small>Chọn Facebook / TikTok / Instagram ở phía trên trước, sau đó mới hiện loại con tương ứng.</small>
                 </div>
             </div>
 
             <div class="section-card section-spaced">
-                <div class="mxh-section-head">
-                    <div class="mxh-section-icon" style="background:rgba(14,165,164,0.12);color:#0d9488">
-                        <i class="fas fa-tag"></i>
-                    </div>
-                    <div>
-                        <h3 class="section-title">Thông tin cơ bản</h3>
-                        <p class="section-subtitle">Tiêu đề, giá bán, số lượng và mô tả tài khoản</p>
-                    </div>
-                </div>
-                <div class="form-grid form-grid-2">
-                    <div class="form-group full">
-                        <label>Tiêu đề <span class="req">*</span></label>
-                        <input type="text" name="title" id="mxh-title"
-                            placeholder="VD: Facebook via cổ 2018, follow 5k, đổi full info" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Số lượng</label>
-                        <input type="number" name="quantity" id="mxh-quantity" value="1" min="1" readonly>
-                        <small>MXH hiện bán theo từng tài khoản, nên số lượng được cố định là 1.</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Giá bán (VND) <span class="req">*</span></label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-coins"></i>
-                            <input type="number" name="price" id="mxh-price"
-                                min="0" step="1000" placeholder="50000" required>
-                        </div>
-                    </div>
-                    <div class="form-group full">
-                        <label>Mô tả chi tiết <span class="req">*</span></label>
-                        <textarea name="description" id="mxh-description" rows="5"
-                            placeholder="Mô tả đặc điểm tài khoản: năm tạo, lịch sử, tính năng, giới hạn..."></textarea>
-                    </div>
-                    <div class="mxh-form-note full">
-                        <i class="fas fa-circle-info"></i>
-                        <span>Mỗi lần đăng chỉ tạo 1 tài khoản để tránh trùng thông tin. Nếu có nhiều tài khoản, hãy đăng riêng từng cái.</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section-card section-spaced">
-                <div class="mxh-section-head">
-                    <div class="mxh-section-icon" style="background:rgba(249,115,22,0.12);color:#f97316">
-                        <i class="fas fa-image"></i>
-                    </div>
-                    <div>
-                        <h3 class="section-title">Ảnh tài khoản</h3>
-                        <p class="section-subtitle">Upload ảnh chụp màn hình hoặc dán ảnh (Ctrl+V)</p>
-                    </div>
-                </div>
-                <div class="mxh-upload-area" id="mxh-upload-area">
-                    <input type="file" id="mxh-image-input" class="file-input" multiple accept="image/*">
-                    <div class="mxh-upload-drop" id="mxh-upload-drop">
-                        <i class="fas fa-cloud-arrow-up"></i>
-                        <p>Kéo thả ảnh vào đây hoặc</p>
-                        <button type="button" class="btn-outline" onclick="document.getElementById('mxh-image-input').click()">
-                            <i class="fas fa-folder-open" style="margin-right:6px"></i>Chọn ảnh
-                        </button>
-                        <small>Hoặc dán ảnh từ clipboard (Ctrl+V)</small>
-                    </div>
-                    <div id="mxh-image-previews" class="mxh-image-previews"></div>
-                </div>
-            </div>
-
-            <div class="mxh-step-nav">
-                <div></div>
-                <button type="button" class="btn-primary mxh-next-btn" id="mxh-step1-next">
-                    Tiếp theo <i class="fas fa-arrow-right" style="margin-left:6px"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Step 2: Account Credentials -->
-        <div class="mxh-form-step" id="mxh-step-2" style="display:none">
-            <div class="section-card section-spaced">
-                <div class="mxh-section-head">
-                    <div class="mxh-section-icon" style="background:rgba(239,68,68,0.12);color:#ef4444">
-                        <i class="fas fa-key"></i>
-                    </div>
-                    <div>
-                        <h3 class="section-title">Thông tin đăng nhập</h3>
-                        <p class="section-subtitle">Thông tin sẽ được mã hóa và chỉ người mua mới thấy sau khi giao dịch</p>
-                    </div>
-                </div>
-
-                <div class="mxh-credentials-warning">
-                    <i class="fas fa-triangle-exclamation"></i>
-                    <span>Thông tin đăng nhập được bảo mật. Chỉ hiển thị cho người mua sau khi xác nhận thanh toán.</span>
-                </div>
-
-                <div class="form-grid form-grid-2">
-                    <div class="form-group">
-                        <label><i class="fas fa-envelope" style="margin-right:6px;color:var(--primary)"></i>Email/SĐT tài khoản <span class="req">*</span></label>
-                        <input type="text" name="account_email" id="mxh-account-email"
-                            placeholder="email@gmail.com hoặc 0901234567" required>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-lock" style="margin-right:6px;color:#ef4444"></i>Mật khẩu <span class="req">*</span></label>
-                        <div class="input-with-icon input-password">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" name="account_password" id="mxh-account-password"
-                                placeholder="Mật khẩu tài khoản" required>
-                            <button type="button" class="toggle-pw-btn" id="mxh-toggle-pw">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-envelope-circle-check" style="margin-right:6px;color:#6366f1"></i>Email backup / Điện thoại backup</label>
-                        <input type="text" name="backup_email" id="mxh-backup-email"
-                            placeholder="Email phụ hoặc SĐT phụ (nếu có)">
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-key" style="margin-right:6px;color:#f59e0b"></i>Mật khẩu email backup</label>
-                        <input type="text" name="backup_email_password" id="mxh-backup-email-pw"
-                            placeholder="Mật khẩu email phụ (nếu có)">
-                    </div>
-                    <div class="form-group full">
-                        <label>
-                            <i class="fas fa-cookie" style="margin-right:6px;color:#f97316"></i>Cookie 
-                            <span class="badge badge-info" style="font-size:10px;padding:2px 7px;margin-left:6px">Tùy chọn</span>
-                        </label>
-                        <textarea name="cookie" id="mxh-cookie" rows="4"
-                            placeholder="Dán cookie tài khoản vào đây (không bắt buộc). Định dạng JSON hoặc Netscape..."></textarea>
-                        <small>Cookie giúp người mua đăng nhập nhanh hơn. Có thể bỏ trống.</small>
-                    </div>
-                    <div class="form-group full">
-                        <label>
-                            <i class="fas fa-circle-info" style="margin-right:6px;color:#3b82f6"></i>Thông tin thêm
-                            <span class="badge badge-info" style="font-size:10px;padding:2px 7px;margin-left:6px">Tùy chọn</span>
-                        </label>
-                        <textarea name="extra_info" id="mxh-extra-info" rows="3"
-                            placeholder="2FA secret key, mã OTP backup, ghi chú đặc biệt..."></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mxh-step-nav">
-                <button type="button" class="btn-outline mxh-back-btn" id="mxh-step2-back">
-                    <i class="fas fa-arrow-left" style="margin-right:6px"></i>Quay lại
-                </button>
-                <button type="button" class="btn-primary mxh-next-btn" id="mxh-step2-next">
-                    Xem lại <i class="fas fa-eye" style="margin-left:6px"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Step 3: Review & Submit -->
-        <div class="mxh-form-step" id="mxh-step-3" style="display:none">
-            <div class="section-card section-spaced">
-                <div class="mxh-section-head">
-                    <div class="mxh-section-icon" style="background:rgba(34,197,94,0.12);color:#22c55e">
-                        <i class="fas fa-circle-check"></i>
-                    </div>
-                    <div>
-                        <h3 class="section-title">Xem lại trước khi đăng</h3>
-                        <p class="section-subtitle">Kiểm tra thông tin trước khi đăng bán</p>
-                    </div>
-                </div>
-                <div id="mxh-review-content" class="mxh-review-content"></div>
-            </div>
-
-            <div class="mxh-step-nav">
-                <button type="button" class="btn-outline mxh-back-btn" id="mxh-step3-back">
-                    <i class="fas fa-arrow-left" style="margin-right:6px"></i>Chỉnh sửa
-                </button>
-                <button type="submit" class="btn-primary mxh-submit-btn" id="mxh-submit">
-                    <i class="fas fa-paper-plane" style="margin-right:6px"></i>Đăng bán ngay
-                </button>
-            </div>
-        </div>
-    </form>
-</div>

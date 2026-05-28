@@ -5,6 +5,7 @@ This repository now supports these 3 deployment targets:
 - Render: full Node.js app (frontend + API) in one service.
 - Vercel: static frontend + serverless API using `vercel.json`.
 - Cloudflare Workers: static frontend from `./frontend` + same-origin proxy for `/api` and `/frames`.
+- Netlify: static frontend from the repo root plus a Netlify Function for `/api`.
 
 ## Shared backend environment variables
 
@@ -29,6 +30,26 @@ Notes:
 - `CORS_ORIGINS` is optional for Vercel/Render same-origin deploys.
 - If Cloudflare uses a custom domain and proxies to Render/Vercel, add that domain to `CORS_ORIGINS`.
 - `*.workers.dev` is already allowed by the backend.
+
+## Netlify
+
+Files used:
+
+- `netlify.toml`
+- `netlify/functions/api.js`
+
+Deploy steps:
+
+1. Import the repo into Netlify.
+2. Set the same backend environment variables listed above.
+3. Deploy.
+4. Verify the site root and `GET /api/health`.
+
+Notes:
+
+- Frontend assets are served from the repository root through Netlify redirects.
+- `/api/*` is handled by `netlify/functions/api.js`.
+- The backend bootstrap runs without starting the Telegram bot in the function runtime.
 
 ## Render
 

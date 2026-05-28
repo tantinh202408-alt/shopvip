@@ -3,10 +3,18 @@ const db = require('../config/database');
 /**
  * Middleware to check if a specific feature is locked by admin.
  * @param {string} featureKey - The key of the feature to check (e.g., 'deposit', 'spin').
+ * @param {object} options - Guard behavior options.
+ * @param {boolean} options.allowAdminBypass - Allow logged-in admins to bypass the lock.
  */
-const featureGuard = (featureKey) => {
+const featureGuard = (featureKey, options = {}) => {
+    const allowAdminBypass = options.allowAdminBypass === true;
+
     return async (req, res, next) => {
         try {
+            if (allowAdminBypass && req.user?.role === 'admin') {
+                return next();
+            }
+
             const settingKey = `feature_lock_${featureKey}`;
             const [rows] = await db.execute(
                 'SELECT setting_value FROM system_settings WHERE setting_key = ?',

@@ -381,7 +381,7 @@ window.pageInit = async function(params, query) {
 
             const params = {
                 page: currentPage,
-                limit: 10,
+                limit: 20,
                 sort: currentSort
             };
 

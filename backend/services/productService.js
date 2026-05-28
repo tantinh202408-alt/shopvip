@@ -10,6 +10,8 @@ const spamProtectionService = require('./spamProtectionService');
 const PRIMARY_ADMIN_EMAIL = process.env.PRIMARY_ADMIN_EMAIL || 'duongthithuyhangkupee@gmail.com';
 const PRODUCT_SALE_SETTING_KEYS = [
     'product_sale_enabled',
+    'product_sale_title',
+    'product_sale_note',
     'product_sale_scope',
     'product_sale_percent',
     'product_sale_category_ids'
@@ -130,6 +132,8 @@ async function loadProductSaleSettings(executor = db) {
     const settings = await getSettingsMap(PRODUCT_SALE_SETTING_KEYS, executor);
     return {
         enabled: parseBooleanSetting(settings.product_sale_enabled, false),
+        title: String(settings.product_sale_title || '').trim(),
+        note: String(settings.product_sale_note || '').trim(),
         scope: parseSaleScope(settings.product_sale_scope, 'all'),
         percent: parseSalePercent(settings.product_sale_percent, 0),
         categoryIds: uniqueCategoryIds(parseCategoryIdsFromSetting(settings.product_sale_category_ids || ''))
@@ -164,6 +168,8 @@ function buildSalePricing(basePrice, productCategoryIds = [], saleSettings = nul
     const normalizedPrice = Number.isFinite(safeBasePrice) ? safeBasePrice : 0;
     const settings = saleSettings || {
         enabled: false,
+        title: '',
+        note: '',
         scope: 'all',
         percent: 0,
         categoryIds: []
@@ -208,7 +214,9 @@ function applySalePricingToProduct(product, saleSettings) {
         effective_price: pricing.effectivePrice,
         sale_percent: pricing.salePercent,
         sale_amount: pricing.discountAmount,
-        sale_applied: pricing.saleApplied
+        sale_applied: pricing.saleApplied,
+        sale_title: saleSettings?.title || '',
+        sale_note: saleSettings?.note || ''
     };
 }
 
@@ -484,7 +492,7 @@ class ProductService {
         try {
             const {
                 page = 1,
-                limit = 10,
+                limit = 20,
                 sort = 'newest'
             } = options;
 
@@ -579,7 +587,7 @@ class ProductService {
             );
 
             const sorted = sortProducts(filtered, sort);
-            const safeLimit = Math.max(parseInt(limit, 10) || 10, 1);
+            const safeLimit = Math.max(parseInt(limit, 10) || 20, 1);
             const safePage = Math.max(parseInt(page, 10) || 1, 1);
             const offset = (safePage - 1) * safeLimit;
             const paged = sorted

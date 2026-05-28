@@ -152,15 +152,19 @@ class ProductController {
         try {
             const clientIp = req.clientIp || req.ip || req.socket?.remoteAddress || '';
             const purchaseTarget = await productService.getPurchaseTarget(req.params.id);
+            const recaptchaToken = String(
+                req.body?.recaptcha_token ||
+                req.headers['x-recaptcha-token'] ||
+                req.query?.recaptcha_token ||
+                ''
+            ).trim();
 
-            if (Number(purchaseTarget.price || 0) <= 0) {
-                await recaptchaService.assertVerified({
-                    token: req.body?.recaptcha_token,
-                    ip: clientIp,
-                    req,
-                    action: 'product_free_purchase'
-                });
-            }
+            await recaptchaService.assertVerified({
+                token: recaptchaToken,
+                ip: clientIp,
+                req,
+                action: Number(purchaseTarget.price || 0) <= 0 ? 'product_free_purchase' : 'product_purchase'
+            });
 
             const result = await productService.purchaseProduct(
                 req.user.id,

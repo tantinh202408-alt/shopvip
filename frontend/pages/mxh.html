@@ -1,39 +1,42 @@
 <div class="container mxh-list-page">
     <!-- Hero -->
     <div class="mxh-list-hero">
-        <div class="mxh-list-hero-content">
-            <div class="mxh-hero-text-wrap">
-                <div class="mxh-list-hero-icon-box">
-                    <i class="fas fa-share-nodes"></i>
-                </div>
-                <h1 class="page-title">Tài khoản Mạng Xã Hội</h1>
-                <p class="section-subtitle">Facebook · TikTok · Instagram · YouTube · X · Zalo và nhiều nền tảng khác</p>
+        <img class="mxh-banner-img" src="/img/banermxh.png" alt="Banner MXH">
+    </div>
+
+    <div class="mxh-filter-strip">
+        <div class="mxh-filter-strip-title">
+            <span class="mxh-filter-kicker">Phân loại MXH</span>
+        </div>
+
+        <!-- Platform filter tabs -->
+        <div class="mxh-platform-tabs-wrap">
+            <div class="mxh-platform-tabs" id="mxh-platform-tabs">
+                <button class="mxh-tab-btn active" data-platform="all" style="--pcolor:#6366f1">
+                    <span class="mxh-tab-icon"><i class="fas fa-globe"></i></span>
+                    <span class="mxh-tab-copy"><strong>Tất cả</strong></span>
+                    <span class="mxh-tab-count">0</span>
+                </button>
             </div>
-            <div id="mxh-sell-btn-wrap"></div>
         </div>
-    </div>
 
-    <!-- Platform filter tabs -->
-    <div class="mxh-platform-tabs-wrap">
-        <div class="mxh-platform-tabs" id="mxh-platform-tabs">
-            <button class="mxh-tab-btn active" data-platform="all">
-                <i class="fas fa-globe"></i> Tất cả
-            </button>
-        </div>
-    </div>
-
-    <!-- Category chips + Sort -->
-    <div class="mxh-filter-bar">
-        <div class="mxh-category-chips" id="mxh-category-chips">
-            <button class="mxh-chip active" data-cat="">Tất cả loại</button>
-        </div>
-        <div class="mxh-sort-wrap">
-            <select id="mxh-sort" class="mxh-sort-select">
-                <option value="newest">Mới nhất</option>
-                <option value="price_asc">Giá tăng dần</option>
-                <option value="price_desc">Giá giảm dần</option>
-                <option value="popular">Phổ biến</option>
-            </select>
+        <!-- Category chips + Sort -->
+        <div class="mxh-filter-bar">
+            <div class="mxh-category-chips" id="mxh-category-chips">
+                <button class="mxh-chip active" data-cat="" style="--chip-color:#6366f1">
+                    <span class="mxh-chip-icon"><i class="fas fa-layer-group"></i></span>
+                    <span class="mxh-chip-copy"><strong>Tất cả loại</strong></span>
+                </button>
+            </div>
+            <div class="mxh-sort-wrap">
+                <label for="mxh-sort" class="mxh-sort-label">Sắp xếp</label>
+                <select id="mxh-sort" class="mxh-sort-select">
+                    <option value="newest">Mới nhất</option>
+                    <option value="price_asc">Giá tăng dần</option>
+                    <option value="price_desc">Giá giảm dần</option>
+                    <option value="popular">Phổ biến</option>
+                </select>
+            </div>
         </div>
     </div>
 

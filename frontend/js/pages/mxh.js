@@ -24,17 +24,44 @@ window.pageInit = async function (params, query = {}) {
     let currentSort     = query.sort || 'newest';
     let currentPage     = parseInt(query.page || '1', 10) || 1;
     const initialAccountId = query.account_id || query.detail_id || query.purchase_id || '';
+    const ALLOWED_PLATFORMS = ['facebook', 'tiktok', 'instagram'];
+
+    function getPlatformMeta(platformId) {
+        return PLATFORM_META[platformId] || PLATFORM_META.other;
+    }
+
+    function getPlatformCount(platformId) {
+        if (!allCats.length) return 0;
+        if (platformId === 'all') return allCats.length;
+        return allCats.filter(cat => (cat.platform || 'other') === platformId).length;
+    }
+
+    function getCategoryMeta(cat) {
+        const platformMeta = getPlatformMeta(cat.platform || 'other');
+        return {
+            icon: cat.icon || platformMeta.icon || 'fas fa-tag',
+            color: cat.color || platformMeta.color || '#6366f1',
+            platformLabel: platformMeta.label || 'Khác'
+        };
+    }
 
     // ── Render Platform Tabs ──────────────────────────────────────────────
     function renderPlatformTabs() {
         const tabs = document.getElementById('mxh-platform-tabs');
         if (!tabs) return;
-        tabs.innerHTML = dynamicPlatforms.map(p => `
-            <button class="mxh-tab-btn ${currentPlatform === p.id ? 'active' : ''}" data-platform="${p.id}"
-                style="--pcolor:${p.color}">
-                <i class="${p.icon}"></i> ${p.label}
+        tabs.innerHTML = dynamicPlatforms.map(p => {
+            const count = getPlatformCount(p.id);
+            const isActive = currentPlatform === p.id;
+            const subtitle = p.id === 'all' ? 'Tất cả danh mục' : `${count} danh mục`;
+            return `
+            <button class="mxh-tab-btn ${isActive ? 'active' : ''}" data-platform="${p.id}" style="--pcolor:${p.color}">
+                <span class="mxh-tab-icon"><i class="${p.icon}"></i></span>
+                <span class="mxh-tab-copy">
+                    <strong>${escapeHtml(p.label)}</strong>
+                </span>
+                <span class="mxh-tab-count">${count}</span>
             </button>
-        `).join('');
+        `;}).join('');
         tabs.querySelectorAll('.mxh-tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentPlatform = btn.dataset.platform;
@@ -68,13 +95,12 @@ window.pageInit = async function (params, query = {}) {
     async function loadCategories() {
         try {
             const res = await api.get('/mxh/categories');
-            allCats = res.success ? (res.data || []) : [];
+            const apiCats = res.success ? (res.data || []) : [];
+            allCats = apiCats.filter(c => ALLOWED_PLATFORMS.includes(c.platform || ''));
             
-            // Group by platform field to create the top row (Platforms)
-            const uniquePlatforms = [...new Set(allCats.map(c => c.platform || 'other'))];
             dynamicPlatforms = [
                 { id: 'all', label: 'Tất cả', icon: 'fas fa-globe', color: '#6366f1' },
-                ...uniquePlatforms.map(pKey => ({
+                ...ALLOWED_PLATFORMS.map(pKey => ({
                     id: pKey,
                     label: PLATFORM_META[pKey]?.label || (pKey.charAt(0).toUpperCase() + pKey.slice(1)),
                     icon: PLATFORM_META[pKey]?.icon || 'fas fa-share-nodes',
@@ -109,17 +135,26 @@ window.pageInit = async function (params, query = {}) {
 
         wrap.style.display = 'flex';
         wrap.innerHTML = `
-            <button class="mxh-cat-chip ${!currentCat ? 'active' : ''}" data-cat="">
-                Tất cả loại
+            <button class="mxh-chip ${!currentCat ? 'active' : ''}" data-cat="">
+                <span class="mxh-chip-icon"><i class="fas fa-layer-group"></i></span>
+                <span class="mxh-chip-copy">
+                    <strong>Tất cả loại</strong>
+                </span>
             </button>
-            ${visible.map(c => `
-                <button class="mxh-cat-chip ${currentCat === String(c.id) ? 'active' : ''}" data-cat="${c.id}">
-                    ${escapeHtml(c.name)}
+            ${visible.map(c => {
+                const meta = getCategoryMeta(c);
+                const isActive = currentCat === String(c.id);
+                return `
+                <button class="mxh-chip ${isActive ? 'active' : ''}" data-cat="${c.id}" style="--chip-color:${meta.color}">
+                    <span class="mxh-chip-icon"><i class="${meta.icon}"></i></span>
+                    <span class="mxh-chip-copy">
+                        <strong>${escapeHtml(c.name)}</strong>
+                    </span>
                 </button>
-            `).join('')}
+            `;}).join('')}
         `;
 
-        wrap.querySelectorAll('.mxh-cat-chip').forEach(btn => {
+        wrap.querySelectorAll('.mxh-chip').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentCat = btn.dataset.cat;
                 currentPage = 1;
@@ -775,7 +810,6 @@ window.pageInit = async function (params, query = {}) {
     }
 
     // ── Init ─────────────────────────────────────────────────────────────
-    renderSellBtn();
     bindSort();
     await loadCategories(); // This will call renderPlatformTabs and renderCategoryChips
     await loadAccounts();

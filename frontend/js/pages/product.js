@@ -24,10 +24,13 @@ window.pageInit = async function(params, query) {
         avg_rating: 0,
         review_count: 0
     };
-    let freePurchaseRecaptchaState = {
+    let purchaseRecaptchaState = {
         enabled: false,
         widgetId: null,
         status: 'idle'
+    };
+    let purchaseGateState = {
+        open: false
     };
     let anonymousViewCaptchaState = {
         required: false,
@@ -140,16 +143,26 @@ window.pageInit = async function(params, query) {
 
     function renderProduct() {
         const container = document.getElementById('product-content');
+        const demoImages = getProductGalleryUrls(product).slice(0, 2);
+        purchaseGateState = {
+            open: false,
+            submitting: false
+        };
+        purchaseRecaptchaState = {
+            enabled: false,
+            widgetId: null,
+            status: 'idle'
+        };
 
         container.innerHTML = `
             <div class="product-layout">
                 <!-- Gallery -->
                 <div class="product-gallery">
-                    <div class="main-image-container">
-                        <img src="${getProductImageUrl(product)}" 
+                    <div class="main-image-container" data-image-frame>
+                        <img src="${getProductImageUrl(product)}"
                              onerror="${getProductImageErrorHandler()}"
-                             alt="${escapeHtml(product.title)}" 
-                             class="main-image" 
+                             alt="${escapeHtml(product.title)}"
+                             class="main-image"
                              id="main-image">
                     </div>
                     <div class="gallery-thumbs" id="gallery-thumbs">
@@ -203,11 +216,14 @@ window.pageInit = async function(params, query) {
                     ${renderReviews()}
                 </div>
             </div>
+
+            ${renderDemoGallery(demoImages)}
         `;
 
         bindEvents();
+        bindPurchaseGateEvents();
         loadGallery();
-        void initFreePurchaseRecaptcha();
+        loadDemoGallery(demoImages);
     }
 
     function renderAnonymousCaptchaGate() {
@@ -315,6 +331,12 @@ window.pageInit = async function(params, query) {
                 <span class="price-old">${formatMoney(originalPrice)}</span>
                 <span class="price-sale-badge">-${Math.round(salePercent)}%</span>
             </div>
+            ${hasSale && (productInput.sale_title || productInput.sale_note) ? `
+                <div class="sale-event-info">
+                    ${productInput.sale_title ? `<strong>${escapeHtml(productInput.sale_title)}</strong>` : ''}
+                    ${productInput.sale_note ? `<p>${escapeHtml(productInput.sale_note)}</p>` : ''}
+                </div>
+            ` : ''}
         `;
     }
 
@@ -356,12 +378,26 @@ window.pageInit = async function(params, query) {
                 ` : ''}
                 ${editBtn}
             </div>
-            ${isFreeProduct ? `
-                <div class="free-purchase-guard">
-                    <div class="free-purchase-note">Xác nhận "Tôi không phải robot" trước khi nhận.</div>
-                    <div id="free-purchase-recaptcha" class="recaptcha-slot is-hidden"></div>
+            <div id="purchase-verification-panel" class="purchase-verification-panel is-hidden">
+                <div class="purchase-verification-head">
+                    <div>
+                        <strong>Xác thực mua hàng</strong>
+                        <p>Khối này chỉ hiện sau khi bạn bấm mua.</p>
+                    </div>
+                    <button type="button" class="btn-ghost purchase-close-btn" id="purchase-close-btn">
+                        Đóng
+                    </button>
                 </div>
-            ` : ''}
+                <div class="purchase-verification-note" id="purchase-verification-note">
+                    ${isFreeProduct ? 'Sản phẩm này miễn phí nhưng vẫn cần xác thực trước khi nhận.' : 'Xác thực robot để tiếp tục thanh toán.'}
+                </div>
+                <div id="purchase-recaptcha" class="recaptcha-slot is-hidden"></div>
+                <p id="purchase-recaptcha-status" class="captcha-gate-status"></p>
+                <div class="purchase-verification-actions">
+                    <button type="button" class="btn-outline" id="purchase-cancel-btn">Hủy</button>
+                    <button type="button" class="btn btn-buy" id="purchase-confirm-btn">Xác nhận mua</button>
+                </div>
+            </div>
         `;
     }
 
@@ -549,26 +585,144 @@ window.pageInit = async function(params, query) {
     }
 
     function loadGallery() {
-        const thumbsContainer = document.getElementById('gallery-thumbs');
-        const mainImage = document.getElementById('main-image');
-
         const images = getProductGalleryUrls(product);
+        bindGalleryImages('main-image', 'gallery-thumbs', images);
+    }
+
+    function loadDemoGallery(images = []) {
+        bindGalleryImages('demo-main-image', 'demo-gallery-thumbs', images);
+    }
+
+    function bindGalleryImages(mainImageId, thumbsContainerId, images = []) {
+        const thumbsContainer = document.getElementById(thumbsContainerId);
+        const mainImage = document.getElementById(mainImageId);
+
+        if (!thumbsContainer || !mainImage) {
+            return;
+        }
+
+        syncImageFrameAspectRatio(mainImage);
+
+        if (!images.length) {
+            thumbsContainer.innerHTML = '';
+            return;
+        }
 
         thumbsContainer.innerHTML = images.map((img, index) => `
-            <img src="${img}" 
+            <img src="${img}"
                  onerror="${getProductImageErrorHandler()}"
-                 alt="Thumbnail ${index + 1}" 
+                 alt="Thumbnail ${index + 1}"
                  class="thumb ${index === 0 ? 'active' : ''}"
                  data-image="${img}">
         `).join('');
 
         thumbsContainer.querySelectorAll('.thumb').forEach(thumb => {
+            syncThumbnailAspectRatio(thumb);
             thumb.addEventListener('click', () => {
                 mainImage.src = thumb.dataset.image;
                 thumbsContainer.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
                 thumb.classList.add('active');
             });
         });
+    }
+
+    function syncThumbnailAspectRatio(thumbElement) {
+        if (!thumbElement) {
+            return;
+        }
+
+        const applyRatio = () => {
+            const width = Number(thumbElement.naturalWidth || 0);
+            const height = Number(thumbElement.naturalHeight || 0);
+            if (width > 0 && height > 0) {
+                thumbElement.style.aspectRatio = `${width} / ${height}`;
+                thumbElement.style.height = 'auto';
+            }
+        };
+
+        thumbElement.addEventListener('load', applyRatio, { passive: true });
+        if (thumbElement.complete) {
+            applyRatio();
+        }
+    }
+
+    function syncImageFrameAspectRatio(imageElement) {
+        if (!imageElement) {
+            return;
+        }
+
+        const frame = imageElement.closest('[data-image-frame]');
+        if (!frame) {
+            return;
+        }
+
+        const applyRatio = () => {
+            const width = Number(imageElement.naturalWidth || 0);
+            const height = Number(imageElement.naturalHeight || 0);
+            if (width > 0 && height > 0) {
+                const ratio = width / height;
+                frame.style.aspectRatio = `${width} / ${height}`;
+                frame.style.height = 'auto';
+
+                if (window.matchMedia('(max-width: 768px)').matches && ratio < 1) {
+                    const maxHeight = frame.classList.contains('product-demo-main-image-wrap')
+                        ? 420
+                        : 420;
+                    const parentWidth = frame.parentElement ? frame.parentElement.clientWidth : window.innerWidth;
+                    const clampedWidth = Math.max(220, Math.min(parentWidth, Math.round(maxHeight * ratio)));
+                    frame.style.width = `${clampedWidth}px`;
+                    frame.style.marginInline = 'auto';
+                } else {
+                    frame.style.width = '100%';
+                    frame.style.marginInline = '';
+                }
+            }
+        };
+
+        imageElement.addEventListener('load', applyRatio, { passive: true });
+        if (imageElement.complete) {
+            applyRatio();
+        }
+    }
+
+    function renderDemoGallery(images = []) {
+        if (!images.length) {
+            return '';
+        }
+
+        const previewImages = images.slice(0, 2);
+        return `
+            <section class="product-demo-gallery">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Ảnh demo sản phẩm</h2>
+                        <p class="section-subtitle">Xem ảnh lớn ở cuối trang để soi rõ giao diện và chi tiết hơn.</p>
+                    </div>
+                </div>
+                <div class="product-demo-layout">
+                    <div class="product-demo-main">
+                        <div class="product-demo-main-image-wrap" data-image-frame>
+                            <img
+                                id="demo-main-image"
+                                src="${previewImages[0]}"
+                                onerror="${getProductImageErrorHandler()}"
+                                alt="${escapeHtml(product.title)} demo"
+                                class="product-demo-main-image"
+                            >
+                        </div>
+                    </div>
+                    <div class="product-demo-sidebar">
+                        <div class="product-demo-note">
+                            <strong>Xem rõ hơn:</strong>
+                            <span>Bấm vào ảnh nhỏ để đổi ảnh lớn bên trái.</span>
+                        </div>
+                        <div id="demo-gallery-thumbs" class="gallery-thumbs product-demo-thumbs">
+                            <!-- Demo thumbnails -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        `;
     }
 
     function bindEvents() {
@@ -890,37 +1044,158 @@ window.pageInit = async function(params, query) {
         }
     }
 
-    async function initFreePurchaseRecaptcha() {
-        const container = document.getElementById('free-purchase-recaptcha');
+    function updatePurchaseGateState() {
+        const panel = document.getElementById('purchase-verification-panel');
+        const note = document.getElementById('purchase-verification-note');
+        const status = document.getElementById('purchase-recaptcha-status');
+        const confirmBtn = document.getElementById('purchase-confirm-btn');
+        const cancelBtn = document.getElementById('purchase-cancel-btn');
+        const closeBtn = document.getElementById('purchase-close-btn');
+        const purchaseBtn = document.getElementById('product-purchase-btn');
+        const recaptchaSlot = document.getElementById('purchase-recaptcha');
+
+        if (panel) {
+            panel.classList.toggle('is-hidden', !purchaseGateState.open);
+        }
+
+        if (purchaseBtn) {
+            purchaseBtn.innerHTML = purchaseGateState.open
+                ? '<i class="fas fa-shield-alt"></i> Tiếp tục mua'
+                : '<i class="fas fa-shopping-cart"></i> Mua ngay';
+        }
+
+        if (confirmBtn) {
+            confirmBtn.disabled = purchaseGateState.submitting || purchaseRecaptchaState.status === 'loading';
+            confirmBtn.innerHTML = purchaseGateState.submitting
+                ? '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...'
+                : 'Xác nhận mua';
+        }
+
+        if (cancelBtn) {
+            cancelBtn.disabled = purchaseGateState.submitting;
+        }
+
+        if (closeBtn) {
+            closeBtn.disabled = purchaseGateState.submitting;
+        }
+
+        if (recaptchaSlot) {
+            recaptchaSlot.classList.toggle('is-hidden', !purchaseGateState.open);
+        }
+
+        if (note) {
+            note.textContent = getEffectiveProductPrice(product || {}) <= 0
+                ? 'Sản phẩm này miễn phí nhưng vẫn cần xác thực trước khi nhận.'
+                : 'Xác thực robot để tiếp tục thanh toán.';
+        }
+
+        if (status) {
+            if (!purchaseGateState.open) {
+                status.textContent = '';
+            } else if (purchaseRecaptchaState.status === 'loading') {
+                status.textContent = 'Đang tải xác thực robot...';
+            } else if (purchaseRecaptchaState.status === 'error') {
+                status.textContent = 'Không thể tải xác thực robot. Vui lòng tải lại hoặc thử lại.';
+            } else if (purchaseRecaptchaState.status === 'not_needed' || purchaseRecaptchaState.enabled === false) {
+                status.textContent = 'Hệ thống chưa bật xác thực robot. Bấm xác nhận mua để tiếp tục.';
+            } else {
+                status.textContent = 'Hãy xác nhận robot rồi bấm xác nhận mua.';
+            }
+        }
+    }
+
+    async function initPurchaseRecaptcha(forceReload = false) {
+        const container = document.getElementById('purchase-recaptcha');
         if (!container) {
-            freePurchaseRecaptchaState = {
+            purchaseRecaptchaState = {
                 enabled: false,
                 widgetId: null,
                 status: 'not_needed'
             };
+            updatePurchaseGateState();
             return;
         }
 
-        freePurchaseRecaptchaState = {
+        if (!purchaseGateState.open) {
+            updatePurchaseGateState();
+            return;
+        }
+
+        purchaseRecaptchaState = {
             enabled: false,
             widgetId: null,
             status: 'loading'
         };
+        updatePurchaseGateState();
 
         try {
-            const nextState = await window.RecaptchaManager.render(container);
-            freePurchaseRecaptchaState = {
+            const nextState = await window.RecaptchaManager.render(container, { forceReload });
+            purchaseRecaptchaState = {
                 ...nextState,
-                status: 'ready'
+                status: nextState.enabled ? 'ready' : 'not_needed'
             };
         } catch (error) {
-            freePurchaseRecaptchaState = {
+            purchaseRecaptchaState = {
                 enabled: true,
                 widgetId: null,
                 status: 'error'
             };
             showToast(error.message || 'Không thể tải reCAPTCHA', 'error');
         }
+
+        updatePurchaseGateState();
+    }
+
+    function openPurchaseGate() {
+        purchaseGateState.open = true;
+        purchaseGateState.submitting = false;
+        updatePurchaseGateState();
+        void initPurchaseRecaptcha();
+
+        const panel = document.getElementById('purchase-verification-panel');
+        if (panel) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function closePurchaseGate() {
+        purchaseGateState.open = false;
+        purchaseGateState.submitting = false;
+        if (purchaseRecaptchaState.enabled && purchaseRecaptchaState.widgetId !== null && window.RecaptchaManager) {
+            window.RecaptchaManager.reset(purchaseRecaptchaState.widgetId);
+        }
+        purchaseRecaptchaState = {
+            enabled: false,
+            widgetId: null,
+            status: 'idle'
+        };
+        updatePurchaseGateState();
+    }
+
+    function bindPurchaseGateEvents() {
+        const confirmBtn = document.getElementById('purchase-confirm-btn');
+        const cancelBtn = document.getElementById('purchase-cancel-btn');
+        const closeBtn = document.getElementById('purchase-close-btn');
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                void submitPurchaseAfterCaptcha();
+            });
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                closePurchaseGate();
+            });
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                closePurchaseGate();
+            });
+        }
+
+        updatePurchaseGateState();
     }
 
     function bindAnonymousCaptchaGateEvents() {
@@ -1191,7 +1466,6 @@ window.pageInit = async function(params, query) {
     // Global functions
     window.purchaseProduct = async function() {
         const effectivePrice = getEffectiveProductPrice(product || {});
-        const isFreeProduct = effectivePrice <= 0;
 
         if (product.is_archived) {
             showToast('Sản phẩm đã lưu trữ, không thể mua', 'warning');
@@ -1204,33 +1478,51 @@ window.pageInit = async function(params, query) {
             return;
         }
 
-        if (!confirm(`Bạn có chắc muốn mua "${escapeHtml(product.title)}" với giá ${formatMoney(effectivePrice)}?`)) {
+        if (!purchaseGateState.open) {
+            openPurchaseGate();
             return;
         }
 
-        let recaptchaToken = '';
-        if (isFreeProduct) {
-            if (freePurchaseRecaptchaState.status === 'loading') {
-                showToast('reCAPTCHA dang duoc tai, vui long doi mot chut', 'warning');
-                return;
-            }
+        await submitPurchaseAfterCaptcha(effectivePrice);
+    };
 
-            if (freePurchaseRecaptchaState.status === 'error') {
-                showToast('Không thể tải reCAPTCHA cho sản phẩm miễn phí', 'error');
-                return;
-            }
+    async function submitPurchaseAfterCaptcha(effectivePrice = getEffectiveProductPrice(product || {})) {
+        if (purchaseGateState.submitting) {
+            return;
+        }
 
-            recaptchaToken = freePurchaseRecaptchaState.enabled
-                ? window.RecaptchaManager.getResponse(freePurchaseRecaptchaState.widgetId)
-                : '';
+        if (!purchaseGateState.open) {
+            openPurchaseGate();
+            return;
+        }
 
-            if (freePurchaseRecaptchaState.enabled && !recaptchaToken) {
-                showToast('Vui lòng xác nhận "Tôi không phải robot"', 'warning');
-                return;
-            }
+        if (purchaseRecaptchaState.status === 'loading') {
+            showToast('reCAPTCHA đang được tải, vui lòng đợi một chút', 'warning');
+            return;
+        }
+
+        if (purchaseRecaptchaState.status === 'error') {
+            showToast('Không thể tải reCAPTCHA. Vui lòng thử lại.', 'error');
+            return;
+        }
+
+        if (!confirm(`Bạn có chắc muốn mua "${String(product.title || '')}" với giá ${formatMoney(effectivePrice)}?`)) {
+            return;
+        }
+
+        const recaptchaToken = purchaseRecaptchaState.enabled
+            ? window.RecaptchaManager.getResponse(purchaseRecaptchaState.widgetId)
+            : '';
+
+        if (purchaseRecaptchaState.enabled && !recaptchaToken) {
+            showToast('Vui lòng xác nhận "Tôi không phải robot"', 'warning');
+            return;
         }
 
         try {
+            purchaseGateState.submitting = true;
+            updatePurchaseGateState();
+
             const response = await api.post(`/products/${productId}/purchase`, {
                 recaptcha_token: recaptchaToken
             });
@@ -1248,12 +1540,15 @@ window.pageInit = async function(params, query) {
             }
 
         } catch (error) {
-            if (isFreeProduct && freePurchaseRecaptchaState.enabled) {
-                window.RecaptchaManager.reset(freePurchaseRecaptchaState.widgetId);
+            if (purchaseRecaptchaState.enabled && purchaseRecaptchaState.widgetId !== null) {
+                window.RecaptchaManager.reset(purchaseRecaptchaState.widgetId);
             }
             showToast(error.message || 'Không thể mua sản phẩm', 'error');
+        } finally {
+            purchaseGateState.submitting = false;
+            updatePurchaseGateState();
         }
-    };
+    }
 
     window.downloadProduct = function() {
         if (product.download_url) {

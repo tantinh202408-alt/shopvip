@@ -88,7 +88,7 @@ class App {
 
     async syncLockedFeatures() {
         try {
-            const features = ['deposit', 'withdraw', 'spin', 'checkin', 'mission', 'community'];
+            const features = ['deposit', 'withdraw', 'spin', 'checkin', 'mission', 'community', 'mxh'];
             const keys = features.map(f => `feature_lock_${f}`).join(',');
             const res = await api.get('/settings', { keys });
             if (res.success) {
@@ -605,6 +605,12 @@ class App {
                     icon: 'fas fa-share-nodes',
                     active: currentPath === '/mxh'
                 },
+                ...(user && ['admin', 'seller'].includes(user.role) ? [{
+                    href: '/banmxh',
+                    label: 'Đăng bán MXH',
+                    icon: 'fas fa-plus',
+                    active: currentPath === '/banmxh'
+                }] : []),
                 {
                     href: '/vongquay',
                     label: 'Vòng quay',
@@ -1073,9 +1079,9 @@ class App {
             { path: '/nhiemvu', page: '/pages/nhiemvu.html', script: '/js/pages/nhiemvu.js', auth: true, feature: 'mission' },
             { path: '/ruttien', page: '/pages/ruttien.html', script: '/js/pages/ruttien.js', role: ['admin', 'seller'], feature: 'withdraw' },
             { path: '/seller-dashboard', page: '/pages/seller-dashboard.html', script: '/js/pages/seller-dashboard.js', role: ['admin', 'seller'] },
-            { path: '/mxh', page: '/pages/mxh.html', script: '/js/pages/mxh.js' },
-            { path: '/mxh/account/:id', page: '/pages/mxh-account.html', script: '/js/pages/mxh-account.js', auth: true },
-            { path: '/banmxh', page: '/pages/banmxh.html', script: '/js/pages/banmxh.js', role: ['admin', 'seller'] }
+            { path: '/mxh', page: '/pages/mxh.html', script: '/js/pages/mxh.js', feature: 'mxh' },
+            { path: '/mxh/account/:id', page: '/pages/mxh-account.html', script: '/js/pages/mxh-account.js', auth: true, feature: 'mxh' },
+            { path: '/banmxh', page: '/pages/banmxh.html', script: '/js/pages/banmxh.js', role: ['admin', 'seller'], feature: 'mxh' }
         ];
         const adminPortalPath = Auth.getAdminPortalPath();
         if (adminPortalPath) {
