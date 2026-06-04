@@ -7,6 +7,13 @@
   NODE_VERSION = "20"
   NODE_ENV = "production"
 
+[functions]
+  included_files = [
+    "frontend/**",
+    "khungcanhan/**",
+    "database.sql"
+  ]
+
 [[redirects]]
   from = "/api"
   to = "/.netlify/functions/api"
