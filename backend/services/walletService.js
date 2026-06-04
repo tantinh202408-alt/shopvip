@@ -1054,24 +1054,24 @@ class WalletService {
 
                     SELECT
                         'mxh_account' AS purchase_type,
-                        a.id AS record_id,
+                        ph.id AS record_id,
                         NULL AS product_id,
-                        a.price AS price_paid,
+                        ph.price AS price_paid,
                         NULL AS download_count,
                         NULL AS last_download,
-                        COALESCE(a.purchased_at, a.created_at) AS created_at,
-                        a.title,
+                        ph.purchased_at AS created_at,
+                        ph.title,
                         NULL AS slug,
                         NULL AS main_image,
                         NULL AS download_url,
                         c.name AS category_name,
                         c.slug AS category_slug,
                         c.platform AS platform,
-                        a.status AS account_status,
-                        a.id AS account_id
-                    FROM mxh_accounts a
-                    LEFT JOIN mxh_categories c ON c.id = a.category_id
-                    WHERE a.buyer_id = ?
+                        'sold' AS account_status,
+                        ph.account_id AS account_id
+                    FROM mxh_purchase_history ph
+                    LEFT JOIN mxh_categories c ON c.id = ph.category_id
+                    WHERE ph.buyer_id = ?
                 ) combined
                 ORDER BY created_at DESC, record_id DESC
                 LIMIT ? OFFSET ?
@@ -1151,7 +1151,7 @@ class WalletService {
 
         const [productCountRows, mxhCountRows] = await Promise.all([
             db.execute('SELECT COUNT(*) as total FROM purchases WHERE user_id = ?', [userId]),
-            db.execute('SELECT COUNT(*) as total FROM mxh_accounts WHERE buyer_id = ?', [userId])
+            db.execute('SELECT COUNT(*) as total FROM mxh_purchase_history WHERE buyer_id = ?', [userId])
         ]);
 
         const productTotal = Number(productCountRows[0]?.[0]?.total || 0);

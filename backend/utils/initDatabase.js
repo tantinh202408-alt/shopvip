@@ -142,11 +142,14 @@ async function ensureProductReviewsTable() {
         await db.execute('ALTER TABLE product_reviews ADD COLUMN comment TEXT NOT NULL DEFAULT ""');
     }
     if (!hasCreatedAt) {
-        await db.execute('ALTER TABLE product_reviews ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP');
+        await db.execute('ALTER TABLE product_reviews ADD COLUMN created_at DATETIME');
     }
     if (!hasUpdatedAt) {
-        await db.execute('ALTER TABLE product_reviews ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP');
+        await db.execute('ALTER TABLE product_reviews ADD COLUMN updated_at DATETIME');
     }
+
+    await db.execute('UPDATE product_reviews SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP)');
+    await db.execute('UPDATE product_reviews SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)');
 }
 
 async function ensureNotificationColumns() {
@@ -199,6 +202,212 @@ async function ensureSecurityActionLogsTable() {
     await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_security_action_logs_hash ON security_action_logs (action_type, actor_user_id, content_hash, created_at)'
     );
+}
+
+async function ensureMxhTables() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS mxh_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE,
+            icon TEXT,
+            color TEXT,
+            platform TEXT NOT NULL,
+            kind TEXT NOT NULL DEFAULT 'account',
+            description TEXT,
+            display_order INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    const [categoryColumns] = await db.execute("PRAGMA table_info('mxh_categories')");
+    const hasCategoryKind = categoryColumns.some(col => col.name === 'kind');
+    const hasCategoryDescription = categoryColumns.some(col => col.name === 'description');
+    const hasCategoryCreatedAt = categoryColumns.some(col => col.name === 'created_at');
+    const hasCategoryUpdatedAt = categoryColumns.some(col => col.name === 'updated_at');
+
+    if (!hasCategoryKind) {
+        await db.execute("ALTER TABLE mxh_categories ADD COLUMN kind TEXT NOT NULL DEFAULT 'account'");
+    }
+    if (!hasCategoryDescription) {
+        await db.execute('ALTER TABLE mxh_categories ADD COLUMN description TEXT');
+    }
+    if (!hasCategoryUpdatedAt) {
+        await db.execute('ALTER TABLE mxh_categories ADD COLUMN updated_at DATETIME');
+    }
+
+    if (hasCategoryCreatedAt) {
+        await db.execute('UPDATE mxh_categories SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)');
+    } else {
+        await db.execute('UPDATE mxh_categories SET updated_at = COALESCE(updated_at, CURRENT_TIMESTAMP)');
+    }
+
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_categories_kind ON mxh_categories (kind, platform, display_order, id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_categories_platform ON mxh_categories (platform, display_order, id)');
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS mxh_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            category_id INTEGER NOT NULL,
+            seller_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            price REAL NOT NULL DEFAULT 0,
+            description TEXT,
+            images TEXT,
+            credentials TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active',
+            buyer_id INTEGER,
+            purchased_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_accounts_category ON mxh_accounts (category_id, status, created_at DESC)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_accounts_seller ON mxh_accounts (seller_id, created_at DESC)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_accounts_buyer ON mxh_accounts (buyer_id, purchased_at DESC)');
+
+    // ============================================
+    // TABLE: MXH_PURCHASE_HISTORY
+    // Store snapshots of account details at purchase time
+    // ============================================
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS mxh_purchase_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            account_id INTEGER NOT NULL,
+            buyer_id INTEGER NOT NULL,
+            seller_id INTEGER NOT NULL,
+            category_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            price REAL NOT NULL,
+            description TEXT,
+            images TEXT,
+            credentials TEXT NOT NULL,
+            purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_purchase_history_buyer ON mxh_purchase_history (buyer_id, purchased_at DESC)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_purchase_history_account ON mxh_purchase_history (account_id)');
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS mxh_service_packages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            category_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            slug TEXT UNIQUE,
+            description TEXT,
+            price REAL NOT NULL DEFAULT 0,
+            unit_label TEXT DEFAULT 'luong',
+            quantity_min INTEGER NOT NULL DEFAULT 1,
+            quantity_max INTEGER NOT NULL DEFAULT 1000,
+            default_quantity INTEGER NOT NULL DEFAULT 100,
+            link_label TEXT DEFAULT 'Link',
+            note_label TEXT DEFAULT 'Ghi chu',
+            form_hint TEXT,
+            display_order INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_service_packages_category ON mxh_service_packages (category_id, display_order, id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_service_packages_active ON mxh_service_packages (is_active, display_order, id)');
+
+    const [servicePackageColumns] = await db.execute("PRAGMA table_info('mxh_service_packages')");
+    const servicePackageAdditions = [
+        ['slug', 'TEXT'],
+        ['description', 'TEXT'],
+        ['unit_label', "TEXT DEFAULT 'luong'"],
+        ['quantity_min', 'INTEGER NOT NULL DEFAULT 1'],
+        ['quantity_max', 'INTEGER NOT NULL DEFAULT 1000'],
+        ['default_quantity', 'INTEGER NOT NULL DEFAULT 100'],
+        ['link_label', "TEXT DEFAULT 'Link'"],
+        ['note_label', "TEXT DEFAULT 'Ghi chu'"],
+        ['form_hint', 'TEXT'],
+        ['updated_at', 'DATETIME']
+    ];
+    for (const [column, definition] of servicePackageAdditions) {
+        if (!servicePackageColumns.some(col => col.name === column)) {
+            await db.execute(`ALTER TABLE mxh_service_packages ADD COLUMN ${column} ${definition}`);
+        }
+    }
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS mxh_service_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            package_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            slug TEXT,
+            description TEXT,
+            price REAL NOT NULL DEFAULT 0,
+            unit_label TEXT DEFAULT 'luong',
+            quantity_min INTEGER NOT NULL DEFAULT 1,
+            quantity_max INTEGER NOT NULL DEFAULT 1000,
+            default_quantity INTEGER NOT NULL DEFAULT 100,
+            link_label TEXT DEFAULT 'Link',
+            note_label TEXT DEFAULT 'Ghi chu',
+            form_hint TEXT,
+            display_order INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_service_items_package ON mxh_service_items (package_id, display_order, id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_service_items_active ON mxh_service_items (is_active, display_order, id)');
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS mxh_service_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            service_id INTEGER NOT NULL,
+            service_item_id INTEGER,
+            category_id INTEGER NOT NULL,
+            platform TEXT NOT NULL,
+            link TEXT NOT NULL,
+            quantity INTEGER NOT NULL DEFAULT 1,
+            unit_price REAL NOT NULL DEFAULT 0,
+            total_price REAL NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'cancelled')),
+            admin_note TEXT,
+            user_note TEXT,
+            test_message TEXT,
+            last_tested_at DATETIME,
+            processed_by INTEGER,
+            processed_at DATETIME,
+            completed_at DATETIME,
+            cancelled_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_service_orders_user ON mxh_service_orders (user_id, created_at DESC)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_service_orders_status ON mxh_service_orders (status, created_at DESC)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_mxh_service_orders_service ON mxh_service_orders (service_id, created_at DESC)');
+
+    const [serviceOrderColumns] = await db.execute("PRAGMA table_info('mxh_service_orders')");
+    const serviceOrderAdditions = [
+        ['admin_note', 'TEXT'],
+        ['user_note', 'TEXT'],
+        ['test_message', 'TEXT'],
+        ['last_tested_at', 'DATETIME'],
+        ['processed_by', 'INTEGER'],
+        ['processed_at', 'DATETIME'],
+        ['completed_at', 'DATETIME'],
+        ['cancelled_at', 'DATETIME'],
+        ['updated_at', 'DATETIME']
+    ];
+    for (const [column, definition] of serviceOrderAdditions) {
+        if (!serviceOrderColumns.some(col => col.name === column)) {
+            await db.execute(`ALTER TABLE mxh_service_orders ADD COLUMN ${column} ${definition}`);
+        }
+    }
+
+    if (!serviceOrderColumns.some(col => col.name === 'service_item_id')) {
+        await db.execute('ALTER TABLE mxh_service_orders ADD COLUMN service_item_id INTEGER');
+    }
 }
 
 async function ensureRegistrationOtpTable() {
@@ -490,6 +699,31 @@ async function ensureFinanceTables() {
         await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions (type)');
         await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_created ON transactions (created_at)');
     }
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS coupons (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE NOT NULL,
+            discount_type TEXT NOT NULL CHECK (discount_type IN ('percent', 'fixed')),
+            discount_value REAL NOT NULL,
+            max_uses INTEGER DEFAULT NULL,
+            used_count INTEGER DEFAULT 0,
+            expires_at DATETIME DEFAULT NULL,
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS coupon_usages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            coupon_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            product_id INTEGER,
+            used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (coupon_id, user_id)
+        )
+    `);
 }
 
 module.exports = {
@@ -500,6 +734,7 @@ module.exports = {
     ensureNotificationColumns,
     ensureSecurityTables,
     ensureSecurityActionLogsTable,
+    ensureMxhTables,
     ensureRegistrationOtpTable,
     ensureGamificationTables,
     ensureFinanceTables

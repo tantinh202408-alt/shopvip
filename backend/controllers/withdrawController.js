@@ -203,7 +203,7 @@ class WithdrawController {
 
             const currentBalance = Number(user.balance || 0);
             if (currentBalance < amount) {
-                const error = new Error('So du khong du.');
+                const error = new Error('Số dư không đủ.');
                 error.statusCode = 400;
                 throw error;
             }
@@ -220,7 +220,7 @@ class WithdrawController {
                 `INSERT INTO transactions
                  (user_id, type, amount, balance_before, balance_after, description)
                  VALUES (?, 'withdraw_pending', ?, ?, ?, ?)`,
-                [userId, -amount, currentBalance, nextBalance, `Yeu cau rut tien, phi 10%, thuc nhan ${netAmount}d`]
+                [userId, -amount, currentBalance, nextBalance, `Yêu cầu rút tiền, phí 10%, thực nhận ${netAmount}đ`]
             );
             const [result] = await connection.execute(
                 `INSERT INTO withdraw_requests
@@ -259,7 +259,7 @@ class WithdrawController {
             });
         } catch (error) {
             await connection.rollback();
-            res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Loi server khi rut tien' });
+            res.status(error.statusCode || 500).json({ success: false, message: error.message || 'Lỗi máy chủ khi rút tiền' });
         } finally {
             connection.release();
         }
@@ -300,7 +300,7 @@ class WithdrawController {
     async adminApprove(req, res) {
         try {
             if (!isPrimaryAdmin(req.user)) {
-                return res.status(403).json({ success: false, message: 'Chi admin chinh moi duoc duyet lenh rut.' });
+                return res.status(403).json({ success: false, message: 'Chỉ admin chính mới được duyệt lệnh rút.' });
             }
             const [requests] = await db.execute(
                 `SELECT w.id, w.user_id, w.amount, w.net_amount, u.full_name, u.email
@@ -312,7 +312,7 @@ class WithdrawController {
             );
             const request = requests[0] || null;
             if (!request) {
-                return res.status(400).json({ success: false, message: 'Yeu cau khong ton tai hoac da xu ly.' });
+                return res.status(400).json({ success: false, message: 'Yêu cầu không tồn tại hoặc đã xử lý.' });
             }
             const [result] = await db.execute(
                 `UPDATE withdraw_requests
@@ -321,7 +321,7 @@ class WithdrawController {
                 [req.body?.adminNote || '', req.user.id, req.params.id]
             );
             if (!result.affectedRows) {
-                return res.status(400).json({ success: false, message: 'Yeu cau khong ton tai hoac da xu ly.' });
+                return res.status(400).json({ success: false, message: 'Yêu cầu không tồn tại hoặc đã xử lý.' });
             }
 
             try {
@@ -336,7 +336,7 @@ class WithdrawController {
                 // Ignore notification errors.
             }
 
-            res.json({ success: true, message: 'Da duyet yeu cau rut tien.' });
+            res.json({ success: true, message: 'Đã duyệt yêu cầu rút tiền.' });
         } catch (error) {
             res.status(500).json({ success: false, message: error.message });
         }
@@ -346,7 +346,7 @@ class WithdrawController {
         const connection = await db.getConnection();
         try {
             if (!isPrimaryAdmin(req.user)) {
-                return res.status(403).json({ success: false, message: 'Chi admin chinh moi duoc tu choi lenh rut.' });
+                return res.status(403).json({ success: false, message: 'Chỉ admin chính mới được từ chối lệnh rút.' });
             }
             await connection.beginTransaction();
 
@@ -355,7 +355,7 @@ class WithdrawController {
                 [req.params.id]
             );
             if (requests.length === 0 || requests[0].status !== 'pending') {
-                const error = new Error('Yeu cau khong ton tai hoac da xu ly.');
+                const error = new Error('Yêu cầu không tồn tại hoặc đã xử lý.');
                 error.statusCode = 400;
                 throw error;
             }
@@ -376,7 +376,7 @@ class WithdrawController {
                 `INSERT INTO transactions
                  (user_id, type, amount, balance_before, balance_after, description, reference_id)
                  VALUES (?, 'withdraw_refund', ?, ?, ?, ?, ?)`,
-                [request.user_id, request.amount, before, after, 'Hoan tien do tu choi lenh rut', request.id]
+                [request.user_id, request.amount, before, after, 'Hoàn tiền do từ chối lệnh rút', request.id]
             );
             await connection.execute(
                 `UPDATE withdraw_requests
@@ -399,7 +399,7 @@ class WithdrawController {
                 // Ignore notification errors.
             }
 
-            res.json({ success: true, message: 'Da tu choi va hoan tien.' });
+            res.json({ success: true, message: 'Đã từ chối và hoàn tiền.' });
         } catch (error) {
             await connection.rollback();
             res.status(error.statusCode || 500).json({ success: false, message: error.message });

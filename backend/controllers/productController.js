@@ -170,7 +170,8 @@ class ProductController {
                 req.user.id,
                 req.params.id,
                 {
-                    ip: clientIp
+                    ip: clientIp,
+                    couponCode: req.body?.coupon_code || null
                 }
             );
 
@@ -201,6 +202,30 @@ class ProductController {
                 res.set('Retry-After', String(error.retryAfterSeconds));
             }
 
+            res.status(error.statusCode || 400).json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    // POST /api/products/:id/validate-coupon
+    async validateCoupon(req, res) {
+        try {
+            const { coupon_code } = req.body;
+            if (!coupon_code) {
+                return res.status(400).json({ success: false, message: 'Mã giảm giá không được để trống' });
+            }
+            const result = await productService.validateCoupon(
+                req.user.id,
+                req.params.id,
+                coupon_code
+            );
+            res.json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
             res.status(error.statusCode || 400).json({
                 success: false,
                 message: error.message

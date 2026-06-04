@@ -577,6 +577,7 @@ class App {
             { tab: 'security', label: 'Bảo mật', icon: 'fas fa-lock' },
             { tab: 'logs', label: 'Logs', icon: 'fas fa-file-lines' },
             { tab: 'storage', label: 'Lưu trữ', icon: 'fas fa-database' },
+            { tab: 'coupons', label: 'Mã giảm giá', icon: 'fas fa-ticket-simple' },
             { tab: 'settings', label: 'Cài đặt', icon: 'fas fa-gear' }
         ];
 
@@ -628,6 +629,12 @@ class App {
                     label: 'Nhiệm vụ 400đ',
                     icon: 'fas fa-tasks',
                     active: currentPath === '/nhiemvu'
+                },
+                {
+                    href: '/tempmail',
+                    label: 'Email tạm thời',
+                    icon: 'fas fa-envelope-open-text',
+                    active: currentPath === '/tempmail'
                 }
             ])}
                 ${(user && ['admin', 'seller'].includes(user.role)) ? buildMenuSection('Thu nhập', [
@@ -1081,7 +1088,8 @@ class App {
             { path: '/seller-dashboard', page: '/pages/seller-dashboard.html', script: '/js/pages/seller-dashboard.js', role: ['admin', 'seller'] },
             { path: '/mxh', page: '/pages/mxh.html', script: '/js/pages/mxh.js', feature: 'mxh' },
             { path: '/mxh/account/:id', page: '/pages/mxh-account.html', script: '/js/pages/mxh-account.js', auth: true, feature: 'mxh' },
-            { path: '/banmxh', page: '/pages/banmxh.html', script: '/js/pages/banmxh.js', role: ['admin', 'seller'], feature: 'mxh' }
+            { path: '/banmxh', page: '/pages/banmxh.html', script: '/js/pages/banmxh.js', role: ['admin', 'seller'], feature: 'mxh' },
+            { path: '/tempmail', page: '/pages/tempmail.html', script: '/js/pages/tempmail.js' }
         ];
         const adminPortalPath = Auth.getAdminPortalPath();
         if (adminPortalPath) {

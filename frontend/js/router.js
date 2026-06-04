@@ -49,6 +49,9 @@ class Router {
     }
 
     async handleRoute() {
+        if (Auth.isAuthenticated() && window.appInstance) {
+            window.appInstance.checkAuth().catch(() => {});
+        }
         const { path, query } = this.parseURL();
         const route = this.matchRoute(path);
 

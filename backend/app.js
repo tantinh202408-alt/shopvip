@@ -7,11 +7,23 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
+
+const app = express();
 const logService = require('./services/logService');
 const { ipGuard } = require('./middleware/ipGuard');
 const humanGateService = require('./services/humanGateService');
+const { apiLimiter, isAdminIdentityRequest } = require('./middleware/apiRateLimit');
+app.use('/api', async (req, res, next) => {
+    try {
+        if (await isAdminIdentityRequest(req)) {
+            return next();
+        }
+    } catch (_) {
+        // Fall through to limiter on inspection errors
+    }
 
-const app = express();
+    return apiLimiter(req, res, next);
+});
 
 function parseTrustProxy(value) {
     if (value === undefined || value === null || value === '') {
@@ -250,6 +262,7 @@ app.use('/api/security', securityRoutes);
 app.use('/api/mission', missionRoutes);
 app.use('/api/withdraw', withdrawRoutes);
 app.use('/api/mxh', require('./routes/mxh'));
+app.use('/api/tempmail', require('./routes/tempmail.routes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

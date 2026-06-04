@@ -317,24 +317,55 @@ function sortProducts(items = [], sort = 'newest') {
     const readPrice = (item) => Number(item?.effective_price ?? item?.price ?? 0);
 
     if (sort === 'price_asc') {
-        data.sort((a, b) => readPrice(a) - readPrice(b));
-        return data;
+        const mapped = data.map((item, index) => ({
+            index,
+            item,
+            price: readPrice(item)
+        }));
+        mapped.sort((a, b) => a.price - b.price);
+        return mapped.map(el => el.item);
     }
     if (sort === 'price_desc') {
-        data.sort((a, b) => readPrice(b) - readPrice(a));
-        return data;
+        const mapped = data.map((item, index) => ({
+            index,
+            item,
+            price: readPrice(item)
+        }));
+        mapped.sort((a, b) => b.price - a.price);
+        return mapped.map(el => el.item);
     }
+
+    // Helper to extract timestamp safely once per item
+    const getTimestamp = (item) => {
+        if (!item?.created_at) return 0;
+        const t = new Date(item.created_at).getTime();
+        return Number.isFinite(t) ? t : 0;
+    };
+
     if (sort === 'popular') {
-        data.sort((a, b) => {
-            const aScore = Number(a.purchase_count || 0) * 2 + Number(a.view_count || 0);
-            const bScore = Number(b.purchase_count || 0) * 2 + Number(b.view_count || 0);
-            if (bScore !== aScore) return bScore - aScore;
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        // Pre-parse dates to optimize sorting
+        const mapped = data.map((item, index) => {
+            const score = Number(item.purchase_count || 0) * 2 + Number(item.view_count || 0);
+            const timestamp = getTimestamp(item);
+            return { index, item, score, timestamp };
         });
-        return data;
+
+        mapped.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return b.timestamp - a.timestamp;
+        });
+
+        return mapped.map(el => el.item);
     }
-    data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    return data;
+
+    // Default: newest (Schwartzian transform for O(N) date parsing)
+    const mapped = data.map((item, index) => {
+        const timestamp = getTimestamp(item);
+        return { index, item, timestamp };
+    });
+
+    mapped.sort((a, b) => b.timestamp - a.timestamp);
+    return mapped.map(el => el.item);
 }
 
 async function getReviewStatsByProductIds(productIds = []) {
@@ -487,7 +518,7 @@ class ProductService {
             throw error;
         }
     }
-    // Lấy danh sách sản phẩm với phân trang và filter
+    // Lấy danh sách sản phẩm với phân trang và filter (Đã tối ưu hóa)
     async getProducts(options = {}) {
         try {
             const {
@@ -506,6 +537,7 @@ class ProductService {
 
             await purgeArchivedProducts(archivedProducts.map(p => p.id).filter(Boolean));
 
+            // 1. Fetch raw products from database (fast column query without images/secondary categories)
             const [dbProducts] = await db.execute(
                 `SELECT 
                     p.*,
@@ -522,8 +554,10 @@ class ProductService {
 
             const productIds = dbProducts.map(p => p.id);
             const categoriesMap = {};
-            const imagesMap = {};
-            if (productIds.length > 0) {
+
+            // Only query categories of ALL products if we filter by category (need secondary categories mapping)
+            const hasCategoryFilter = options.category_id || options.category_ids;
+            if (hasCategoryFilter && productIds.length > 0) {
                 const placeholders = productIds.map(() => '?').join(',');
                 const [catRows] = await db.execute(
                     `SELECT pc.product_id, c.id, c.name, c.slug
@@ -540,40 +574,22 @@ class ProductService {
                         slug: item.slug
                     });
                 });
-
-                const [imageRows] = await db.execute(
-                    `SELECT * FROM product_images
-                     WHERE product_id IN (${placeholders})
-                     ORDER BY product_id ASC, display_order ASC, id ASC`,
-                    productIds
-                );
-                imageRows.forEach(item => {
-                    if (!imagesMap[item.product_id]) imagesMap[item.product_id] = [];
-                    imagesMap[item.product_id].push(item);
-                });
             }
-
-            // Review stats
-            const reviewStatsMap = await getReviewStatsByProductIds(productIds);
 
             const archivedIds = new Set(archivedProducts.map(p => String(p.id)));
             const liveProducts = dbProducts
                 .filter(p => !archivedIds.has(String(p.id)))
                 .map(p => {
-                    const gallery = imagesMap[p.id] || [];
-                    const mainImage = resolveProductMainImage(p.main_image, gallery);
                     return {
-                    ...p,
-                    main_image: mainImage,
-                    gallery,
-                    categories: categoriesMap[p.id] || (p.category_id ? [{
-                        id: p.category_id,
-                        name: p.category_name,
-                        slug: p.category_slug
-                    }] : []),
-                    is_archived: false,
-                    avg_rating: reviewStatsMap[p.id]?.avg_rating || 0,
-                    review_count: reviewStatsMap[p.id]?.review_count || 0
+                        ...p,
+                        categories: categoriesMap[p.id] || (p.category_id ? [{
+                            id: p.category_id,
+                            name: p.category_name,
+                            slug: p.category_slug
+                        }] : []),
+                        is_archived: false,
+                        avg_rating: 0,
+                        review_count: 0
                     };
                 });
 
@@ -581,6 +597,7 @@ class ProductService {
             const pricedLiveProducts = liveProducts.map(item => applySalePricingToProduct(item, saleSettings));
             const archiveList = archivedProducts.map(normalizeArchiveProduct);
 
+            // Filter & Sort in-memory
             const filtered = filterProductsByOptions(
                 [...pricedLiveProducts, ...archiveList],
                 normalizedOptions
@@ -590,9 +607,78 @@ class ProductService {
             const safeLimit = Math.max(parseInt(limit, 10) || 20, 1);
             const safePage = Math.max(parseInt(page, 10) || 1, 1);
             const offset = (safePage - 1) * safeLimit;
-            const paged = sorted
-                .slice(offset, offset + safeLimit)
-                .map(item => sanitizeProductForViewer(item, { userId: null, role: null, hasPurchased: false }));
+
+            // Slice the final paged products (usually max 20 products)
+            const pagedProducts = sorted.slice(offset, offset + safeLimit);
+
+            // 2. Fetch full details (images, reviews, missing categories) ONLY for the 20 paged items
+            const finalProductIds = pagedProducts.filter(p => !p.is_archived).map(p => p.id);
+            const finalImagesMap = {};
+            const finalCategoriesMap = { ...categoriesMap };
+
+            if (finalProductIds.length > 0) {
+                const placeholders = finalProductIds.map(() => '?').join(',');
+
+                // Fetch images for page items
+                const [imageRows] = await db.execute(
+                    `SELECT * FROM product_images
+                     WHERE product_id IN (${placeholders})
+                     ORDER BY product_id ASC, display_order ASC, id ASC`,
+                    finalProductIds
+                );
+                imageRows.forEach(item => {
+                    if (!finalImagesMap[item.product_id]) finalImagesMap[item.product_id] = [];
+                    finalImagesMap[item.product_id].push(item);
+                });
+
+                // Fetch categories for page items if we skipped loading them earlier
+                if (!hasCategoryFilter) {
+                    const [catRows] = await db.execute(
+                        `SELECT pc.product_id, c.id, c.name, c.slug
+                         FROM product_categories pc
+                         JOIN categories c ON c.id = pc.category_id
+                         WHERE pc.product_id IN (${placeholders})`,
+                        finalProductIds
+                    );
+                    catRows.forEach(item => {
+                        if (!finalCategoriesMap[item.product_id]) finalCategoriesMap[item.product_id] = [];
+                        finalCategoriesMap[item.product_id].push({
+                            id: item.id,
+                            name: item.name,
+                            slug: item.slug
+                        });
+                    });
+                }
+            }
+
+            // Fetch review stats for page items
+            const finalReviewStatsMap = finalProductIds.length > 0 
+                ? await getReviewStatsByProductIds(finalProductIds) 
+                : {};
+
+            // Final mapping with full details
+            const paged = pagedProducts.map(p => {
+                if (p.is_archived) {
+                    return sanitizeProductForViewer(p, { userId: null, role: null, hasPurchased: false });
+                }
+
+                const gallery = finalImagesMap[p.id] || [];
+                const mainImage = resolveProductMainImage(p.main_image, gallery);
+                const fullProduct = {
+                    ...p,
+                    main_image: mainImage,
+                    gallery,
+                    categories: finalCategoriesMap[p.id] || (p.category_id ? [{
+                        id: p.category_id,
+                        name: p.category_name,
+                        slug: p.category_slug
+                    }] : []),
+                    avg_rating: finalReviewStatsMap[p.id]?.avg_rating || 0,
+                    review_count: finalReviewStatsMap[p.id]?.review_count || 0
+                };
+                return sanitizeProductForViewer(fullProduct, { userId: null, role: null, hasPurchased: false });
+            });
+
             const total = sorted.length;
             const totalPages = Math.ceil(total / safeLimit);
 
@@ -1258,7 +1344,16 @@ class ProductService {
                 connection
             );
             const pricing = buildSalePricing(product.price, productCategoryIds, saleSettings);
-            const payablePrice = pricing.effectivePrice;
+            let payablePrice = pricing.effectivePrice;
+
+            let coupon = null;
+            let couponDiscount = 0;
+            if (context.couponCode) {
+                const couponValidation = await this.validateCoupon(userId, resolvedProductId, context.couponCode, connection);
+                coupon = couponValidation.coupon;
+                couponDiscount = couponValidation.discountAmount;
+                payablePrice = couponValidation.effectivePrice;
+            }
 
             if (product.status !== 'active') {
                 throw new Error('Product is not available');
@@ -1313,6 +1408,18 @@ class ProductService {
                 [sellerBalanceAfter, product.seller_id]
             );
 
+            // Record coupon usage
+            if (coupon) {
+                await connection.execute(
+                    'UPDATE coupons SET used_count = used_count + 1 WHERE id = ?',
+                    [coupon.id]
+                );
+                await connection.execute(
+                    'INSERT INTO coupon_usages (coupon_id, user_id, product_id) VALUES (?, ?, ?)',
+                    [coupon.id, userId, resolvedProductId]
+                );
+            }
+
             // Create purchase record
             await connection.execute(
                 'INSERT INTO purchases (user_id, product_id, price_paid) VALUES (?, ?, ?)',
@@ -1324,14 +1431,14 @@ class ProductService {
                 `INSERT INTO transactions 
                 (user_id, type, amount, balance_before, balance_after, description, reference_id)
                 VALUES (?, 'purchase', ?, ?, ?, ?, ?)`,
-                [userId, -payablePrice, user.balance, newBalance, `Purchase: ${product.title}`, resolvedProductId]
+                [userId, -payablePrice, user.balance, newBalance, `Purchase: ${product.title}${coupon ? ` (Mã giảm giá: ${coupon.code})` : ''}`, resolvedProductId]
             );
 
             await connection.execute(
                 `INSERT INTO transactions
                 (user_id, type, amount, balance_before, balance_after, description, reference_id)
                 VALUES (?, 'seller_sale_credit', ?, ?, ?, ?, ?)`,
-                [product.seller_id, payablePrice, sellerBalanceBefore, sellerBalanceAfter, `Sale income: ${product.title}`, resolvedProductId]
+                [product.seller_id, payablePrice, sellerBalanceBefore, sellerBalanceAfter, `Sale income: ${product.title}${coupon ? ` (Mã giảm giá: ${coupon.code})` : ''}`, resolvedProductId]
             );
 
             // Update product purchase count
@@ -1362,8 +1469,8 @@ class ProductService {
                     original_price: pricing.originalPrice,
                     effective_price: payablePrice,
                     sale_percent: pricing.salePercent,
-                    sale_amount: pricing.discountAmount,
-                    sale_applied: pricing.saleApplied,
+                    sale_amount: pricing.discountAmount + couponDiscount,
+                    sale_applied: pricing.saleApplied || !!coupon,
                     seller_id: product.seller_id
                 }
             };
@@ -1373,6 +1480,109 @@ class ProductService {
             throw error;
         } finally {
             connection.release();
+        }
+    }
+
+    async validateCoupon(userId, productId, couponCode, externalConnection = null) {
+        const connection = externalConnection || await db.getConnection();
+        try {
+            if (!couponCode) {
+                throw new Error('Mã giảm giá không được để trống');
+            }
+
+            // Find coupon
+            const [coupons] = await connection.execute(
+                `SELECT * FROM coupons WHERE UPPER(code) = UPPER(?) AND is_active = 1 LIMIT 1`,
+                [couponCode.trim()]
+            );
+
+            if (coupons.length === 0) {
+                throw new Error('Mã giảm giá không tồn tại hoặc đã bị vô hiệu hóa');
+            }
+
+            const coupon = coupons[0];
+
+            // Check expiry
+            if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
+                throw new Error('Mã giảm giá đã hết hạn sử dụng');
+            }
+
+            // Check max uses
+            if (coupon.max_uses !== null && coupon.used_count >= coupon.max_uses) {
+                throw new Error('Mã giảm giá đã đạt số lượt sử dụng tối đa');
+            }
+
+            // Check user usage
+            const [usage] = await connection.execute(
+                `SELECT id FROM coupon_usages WHERE coupon_id = ? AND user_id = ? LIMIT 1`,
+                [coupon.id, userId]
+            );
+
+            if (usage.length > 0) {
+                throw new Error('Bạn đã sử dụng mã giảm giá này rồi');
+            }
+
+            // Get product price
+            let resolvedProductId = productId;
+            if (!/^\d+$/.test(String(productId))) {
+                const [bySlug] = await connection.execute(
+                    'SELECT id FROM products WHERE slug = ?',
+                    [productId]
+                );
+                if (bySlug.length === 0) {
+                    throw new Error('Product not found');
+                }
+                resolvedProductId = bySlug[0].id;
+            }
+
+            const [products] = await connection.execute(
+                'SELECT price, category_id FROM products WHERE id = ?',
+                [resolvedProductId]
+            );
+
+            if (products.length === 0) {
+                throw new Error('Sản phẩm không tồn tại');
+            }
+
+            const product = products[0];
+            const saleSettings = await loadProductSaleSettings(connection);
+            const productCategoryIds = await getProductCategoryIds(
+                resolvedProductId,
+                product.category_id,
+                connection
+            );
+            const pricing = buildSalePricing(product.price, productCategoryIds, saleSettings);
+            const basePrice = pricing.effectivePrice;
+
+            // Calculate coupon discount
+            let discountAmount = 0;
+            if (coupon.discount_type === 'percent') {
+                discountAmount = Math.round((basePrice * coupon.discount_value) / 100);
+            } else if (coupon.discount_type === 'fixed') {
+                discountAmount = coupon.discount_value;
+            }
+
+            // Coupon discount cannot exceed base price
+            discountAmount = Math.min(discountAmount, basePrice);
+            const effectivePrice = Math.max(0, basePrice - discountAmount);
+
+            return {
+                valid: true,
+                coupon: {
+                    id: coupon.id,
+                    code: coupon.code,
+                    discount_type: coupon.discount_type,
+                    discount_value: coupon.discount_value
+                },
+                originalPrice: pricing.originalPrice,
+                basePrice,
+                discountAmount,
+                effectivePrice
+            };
+        } finally {
+            if (!externalConnection) {
+                connection.release();
+            }
         }
     }
 }

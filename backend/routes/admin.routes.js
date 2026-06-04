@@ -524,7 +524,7 @@ function listFrameFiles() {
     };
 
     return walkFrames(FRAMES_DIR)
-        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 }
 
 const frameUpload = multer({
@@ -903,22 +903,32 @@ router.get('/users/:id/inspect', async (req, res) => {
         });
 
         const activeBlockMap = await getActiveBlocksByIps(Array.from(ipMap.keys()));
-        const recentIps = Array.from(ipMap.values())
+        const mappedRecentIps = Array.from(ipMap.values())
             .map((entry) => {
                 const activeBlock = activeBlockMap.get(entry.ip);
+                let timestamp = 0;
+                if (entry.lastSeenAt) {
+                    const t = new Date(entry.lastSeenAt).getTime();
+                    if (Number.isFinite(t)) timestamp = t;
+                }
                 return {
-                    ip: entry.ip,
-                    lastSeenAt: entry.lastSeenAt,
-                    sources: Array.from(entry.sources),
-                    block: activeBlock ? {
-                        reason: activeBlock.reason,
-                        detail: activeBlock.detail,
-                        blockUntil: new Date(activeBlock.blockUntilMs).toISOString(),
-                        isManual: activeBlock.reason === MANUAL_ADMIN_BLOCK_REASON
-                    } : null
+                    item: {
+                        ip: entry.ip,
+                        lastSeenAt: entry.lastSeenAt,
+                        sources: Array.from(entry.sources),
+                        block: activeBlock ? {
+                            reason: activeBlock.reason,
+                            detail: activeBlock.detail,
+                            blockUntil: new Date(activeBlock.blockUntilMs).toISOString(),
+                            isManual: activeBlock.reason === MANUAL_ADMIN_BLOCK_REASON
+                        } : null
+                    },
+                    timestamp
                 };
-            })
-            .sort((a, b) => new Date(b.lastSeenAt || 0) - new Date(a.lastSeenAt || 0));
+            });
+
+        mappedRecentIps.sort((a, b) => b.timestamp - a.timestamp);
+        const recentIps = mappedRecentIps.map(el => el.item);
 
         const activities = [];
 
@@ -960,7 +970,17 @@ router.get('/users/:id/inspect', async (req, res) => {
 
         activities.push(...recentLogs);
 
-        activities.sort((a, b) => new Date(b.at) - new Date(a.at));
+        const mappedActivities = activities.map((act) => {
+            let timestamp = 0;
+            if (act.at) {
+                const t = new Date(act.at).getTime();
+                if (Number.isFinite(t)) timestamp = t;
+            }
+            return { act, timestamp };
+        });
+
+        mappedActivities.sort((a, b) => b.timestamp - a.timestamp);
+        const sortedActivities = mappedActivities.map(el => el.act);
 
         res.json({
             success: true,
@@ -970,7 +990,7 @@ router.get('/users/:id/inspect', async (req, res) => {
                 purchases,
                 deposits,
                 withdraws,
-                activities: activities.slice(0, 15),
+                activities: sortedActivities.slice(0, 15),
                 recentIps
             }
         });
@@ -2563,6 +2583,42 @@ router.post('/feature-locks', async (req, res) => {
         await upsertSetting(`feature_lock_${feature}`, isLocked ? 'true' : 'false');
         
         res.json({ success: true, message: `Updated lock for ${feature}` });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// POST /api/admin/mxh/bulk-price-update
+router.post('/mxh/bulk-price-update', async (req, res) => {
+    try {
+        const { target, type, value } = req.body;
+        const val = parseFloat(value);
+
+        if (!target || !type || isNaN(val)) {
+            return res.status(400).json({ success: false, message: 'Thiếu hoặc sai định dạng tham số' });
+        }
+
+        if (target !== 'item' && target !== 'package') {
+            return res.status(400).json({ success: false, message: 'Mục tiêu không hợp lệ (chỉ chọn dịch vụ con hoặc gói dịch vụ)' });
+        }
+
+        if (type !== 'percent' && type !== 'amount') {
+            return res.status(400).json({ success: false, message: 'Loại điều chỉnh không hợp lệ' });
+        }
+
+        const table = target === 'item' ? 'mxh_service_items' : 'mxh_service_packages';
+
+        if (type === 'percent') {
+            const multiplier = 1 + (val / 100);
+            await db.execute(`UPDATE ${table} SET price = ROUND(price * ?)`, [multiplier]);
+        } else {
+            await db.execute(`UPDATE ${table} SET price = price + ?`, [val]);
+        }
+
+        res.json({
+            success: true,
+            message: `Đã cập nhật nâng/giảm giá hàng loạt thành công cho tất cả ${target === 'item' ? 'dịch vụ con' : 'gói dịch vụ'}.`
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

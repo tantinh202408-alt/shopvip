@@ -76,12 +76,17 @@ function ensureCapacity() {
         return;
     }
 
-    const sorted = Array.from(visitorSessions.entries())
-        .sort((a, b) => Number(a[1]?.lastSeenAt || 0) - Number(b[1]?.lastSeenAt || 0));
+    const entries = Array.from(visitorSessions.entries());
+    const mapped = entries.map(([key, val]) => ({
+        key,
+        lastSeenAt: Number(val?.lastSeenAt || 0)
+    }));
+
+    mapped.sort((a, b) => a.lastSeenAt - b.lastSeenAt);
 
     const removeCount = Math.max(Math.ceil(MAX_TRACKED_VISITORS * 0.1), 1);
-    for (let index = 0; index < removeCount && index < sorted.length; index += 1) {
-        visitorSessions.delete(sorted[index][0]);
+    for (let index = 0; index < removeCount && index < mapped.length; index += 1) {
+        visitorSessions.delete(mapped[index].key);
     }
 }
 
@@ -238,7 +243,7 @@ async function registerEntry(req, res) {
 }
 
 function makeCaptchaRequiredError({ distinctCount, viewCount, productId, visitorId, reason }) {
-    const error = new Error('Khach chua dang nhap da mo trang san pham qua nhanh. Vui long xac nhan reCAPTCHA de tiep tuc.');
+    const error = new Error('Khách chưa đang nhập đã mở trang sản phẩm quá nhanh. Vui lòng xac nhan reCAPTCHA de tiep tuc.');
     error.statusCode = 403;
     error.code = 'ANON_PRODUCT_CAPTCHA_REQUIRED';
     error.data = {

@@ -5,28 +5,56 @@
 
 window.pageInit = async function(params, query = {}) {
     let logInterval = null;
+    let dashboardClockInterval = null;
 
-    bindTabs(query.tab || 'dashboard');
-    await loadDashboard();
-    await loadUsers();
-    await loadDeposits();
-    await loadWithdrawals();
-    await loadProducts();
-    await loadCategories();
-    await loadPosts();
-    await loadMessages();
-    await loadSupport();
-    await loadNotifications();
-    await loadInspect();
-    await loadSecurity();
-    await loadStorage();
-    await loadLogs();
-    await loadMxhCategories();
+    const tabLoaders = {
+        dashboard: loadDashboard,
+        users: loadUsers,
+        deposits: loadDeposits,
+        withdrawals: loadWithdrawals,
+        products: loadProducts,
+        categories: loadCategories,
+        posts: loadPosts,
+        messages: loadMessages,
+        support: loadSupport,
+        notifications: loadNotifications,
+        inspect: loadInspect,
+        security: loadSecurity,
+        logs: loadLogs,
+        storage: loadStorage,
+        mxh_services: loadMxhServices,
+        settings: loadSettings,
+        coupons: loadCoupons
+    };
+
+    async function loadActiveTab(tab = 'dashboard') {
+        const normalizedTab = tabLoaders[tab] ? tab : 'dashboard';
+        const loader = tabLoaders[normalizedTab];
+        const pane = document.getElementById(`tab-${normalizedTab}`);
+
+        if (pane && !pane.querySelector('.section-card') && !pane.querySelector('.stat-grid') && !pane.querySelector('.admin-chat')) {
+            pane.innerHTML = `
+                <div class="admin-tab-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Đang tải nội dung...</p>
+                </div>
+            `;
+        }
+
+        if (typeof loader === 'function') {
+            await loader();
+        }
+    }
+
+    const initialTab = query.tab || 'dashboard';
+
+    bindTabs(initialTab);
+    await loadActiveTab(initialTab);
     initShareDataModal();
-    await loadSettings();
 
     window.pageCleanup = () => {
         if (logInterval) clearInterval(logInterval);
+        if (dashboardClockInterval) clearInterval(dashboardClockInterval);
     };
 
     function bindTabs(initialTab = 'dashboard') {
@@ -46,6 +74,8 @@ window.pageInit = async function(params, query = {}) {
             'logs',
             'storage',
             'mxh_categories',
+            'mxh_services',
+            'coupons',
             'settings'
         ]);
 
@@ -75,6 +105,11 @@ window.pageInit = async function(params, query = {}) {
 
     async function loadDashboard() {
         const container = document.getElementById('tab-dashboard');
+        if (dashboardClockInterval) {
+            clearInterval(dashboardClockInterval);
+            dashboardClockInterval = null;
+        }
+
         try {
             const response = await api.get('/admin/dashboard');
             if (response.success) {
@@ -96,56 +131,102 @@ window.pageInit = async function(params, query = {}) {
                 const reqLast5m = reqStats.last5m ?? 0;
                 const cpuLoadPercent = Math.max(0, Math.min(100, Math.round((load1m / Math.max(cpu.cores || 1, 1)) * 100)));
                 const reqLoadPercent = reqLast1h > 0 ? Math.max(0, Math.min(100, Math.round((reqLast5m / Math.max(reqLast1h, 1)) * 100))) : 0;
+                const loadSeries = [
+                    { label: '1m', value: load1m },
+                    { label: '5m', value: load5m },
+                    { label: '15m', value: load15m }
+                ];
+                const timezoneLabel = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local';
 
                 container.innerHTML = `
-                    <div class="stat-grid admin-stat-grid">
-                        <div class="stat-card stat-card--revenue">
-                            <div class="stat-card-icon"><i class="fas fa-coins"></i></div>
-                            <div class="stat-card-body">
-                                <div class="stat-card-label">Doanh thu (tổng)</div>
-                                <div class="stat-card-value">${formatMoney(d.totalRevenue)}</div>
+                    <div class="dashboard-stats-wrapper">
+                        <div class="stats-group">
+                            <h4 class="stats-group-title"><i class="fas fa-wallet" style="color:var(--primary)"></i> Hiệu suất tài chính</h4>
+                            <div class="stat-grid admin-stat-grid">
+                                <div class="stat-card stat-card--revenue">
+                                    <div class="stat-card-icon"><i class="fas fa-coins"></i></div>
+                                    <div class="stat-card-body">
+                                        <div class="stat-card-label">Doanh thu (tổng)</div>
+                                        <div class="stat-card-value">${formatMoney(d.totalRevenue)}</div>
+                                    </div>
+                                </div>
+                                <div class="stat-card stat-card--revenue30">
+                                    <div class="stat-card-icon"><i class="fas fa-calendar-days"></i></div>
+                                    <div class="stat-card-body">
+                                        <div class="stat-card-label">Doanh thu 30 ngày</div>
+                                        <div class="stat-card-value">${formatMoney(dailyTotal)}</div>
+                                    </div>
+                                </div>
+                                <div class="stat-card stat-card--revenue12">
+                                    <div class="stat-card-icon"><i class="fas fa-chart-line"></i></div>
+                                    <div class="stat-card-body">
+                                        <div class="stat-card-label">Doanh thu 12 tháng</div>
+                                        <div class="stat-card-value">${formatMoney(monthlyTotal)}</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="stat-card stat-card--revenue30">
-                            <div class="stat-card-icon"><i class="fas fa-calendar-days"></i></div>
-                            <div class="stat-card-body">
-                                <div class="stat-card-label">Doanh thu 30 ngày</div>
-                                <div class="stat-card-value">${formatMoney(dailyTotal)}</div>
+
+                        <div class="stats-group">
+                            <h4 class="stats-group-title"><i class="fas fa-server" style="color:var(--primary)"></i> Hệ thống & Tài nguyên</h4>
+                            <div class="stat-grid admin-stat-grid">
+                                <div class="stat-card stat-card--users">
+                                    <div class="stat-card-icon"><i class="fas fa-users"></i></div>
+                                    <div class="stat-card-body">
+                                        <div class="stat-card-label">Tổng người dùng</div>
+                                        <div class="stat-card-value">${d.totalUsers}</div>
+                                    </div>
+                                </div>
+                                <div class="stat-card stat-card--active">
+                                    <div class="stat-card-icon"><i class="fas fa-user-check"></i></div>
+                                    <div class="stat-card-body">
+                                        <div class="stat-card-label">User hoạt động</div>
+                                        <div class="stat-card-value">${d.activeUsers}</div>
+                                    </div>
+                                </div>
+                                <div class="stat-card stat-card--products">
+                                    <div class="stat-card-icon"><i class="fas fa-box-open"></i></div>
+                                    <div class="stat-card-body">
+                                        <div class="stat-card-label">Sản phẩm</div>
+                                        <div class="stat-card-value">${d.totalProducts}</div>
+                                    </div>
+                                </div>
+                                <div class="stat-card stat-card--storage">
+                                    <div class="stat-card-icon"><i class="fas fa-database"></i></div>
+                                    <div class="stat-card-body">
+                                        <div class="stat-card-label">Dung lượng dữ liệu</div>
+                                        <div class="stat-card-value">${formatBytes(d.dbSizeBytes || 0)}</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="stat-card stat-card--revenue12">
-                            <div class="stat-card-icon"><i class="fas fa-chart-line"></i></div>
-                            <div class="stat-card-body">
-                                <div class="stat-card-label">Doanh thu 12 tháng</div>
-                                <div class="stat-card-value">${formatMoney(monthlyTotal)}</div>
+                    </div>
+                    <div class="section-card section-spaced premium-clock-card">
+                        <div class="clock-glass-bg"></div>
+                        <div class="clock-card-content">
+                            <div class="clock-header">
+                                <div class="clock-title-wrap">
+                                    <div class="clock-live-dot"></div>
+                                    <h3 class="section-title" style="color:#f8fafc; margin:0"><i class="fas fa-clock" style="margin-right:8px"></i>Đồng hồ vận hành</h3>
+                                </div>
+                                <span class="badge badge-info"><i class="fas fa-location-dot" style="margin-right:4px"></i>${timezoneLabel}</span>
                             </div>
-                        </div>
-                        <div class="stat-card stat-card--users">
-                            <div class="stat-card-icon"><i class="fas fa-users"></i></div>
-                            <div class="stat-card-body">
-                                <div class="stat-card-label">Tổng người dùng</div>
-                                <div class="stat-card-value">${d.totalUsers}</div>
+                            <div class="clock-display-wrap">
+                                <div class="digital-clock-face">
+                                    <span id="clock-hour" class="clock-num">--</span>
+                                    <span class="clock-colon">:</span>
+                                    <span id="clock-minute" class="clock-num">--</span>
+                                    <span class="clock-colon">:</span>
+                                    <span id="clock-second" class="clock-num text-gradient-primary">--</span>
+                                </div>
+                                <div class="date-display">
+                                    <i class="far fa-calendar-alt"></i>
+                                    <span id="dashboard-live-date">Đang tải ngày...</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="stat-card stat-card--active">
-                            <div class="stat-card-icon"><i class="fas fa-user-check"></i></div>
-                            <div class="stat-card-body">
-                                <div class="stat-card-label">User hoạt động</div>
-                                <div class="stat-card-value">${d.activeUsers}</div>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--products">
-                            <div class="stat-card-icon"><i class="fas fa-box-open"></i></div>
-                            <div class="stat-card-body">
-                                <div class="stat-card-label">Sản phẩm</div>
-                                <div class="stat-card-value">${d.totalProducts}</div>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card--storage">
-                            <div class="stat-card-icon"><i class="fas fa-database"></i></div>
-                            <div class="stat-card-body">
-                                <div class="stat-card-label">Dung lượng dữ liệu</div>
-                                <div class="stat-card-value">${formatBytes(d.dbSizeBytes || 0)}</div>
+                            <div class="clock-footer-meta">
+                                <span><i class="fas fa-sync fa-spin" style="margin-right:4px"></i> Cập nhật thời gian thực</span>
+                                <span><i class="fas fa-circle-check" style="margin-right:4px; color:#10b981"></i> Đồng bộ với máy chủ</span>
                             </div>
                         </div>
                     </div>
@@ -204,6 +285,16 @@ window.pageInit = async function(params, query = {}) {
                             </div>
                             <div id="chart-monthly" class="line-chart"></div>
                         </div>
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <div>
+                                    <div class="chart-title"><i class="fas fa-wave-square" style="margin-right:6px"></i>Tải hệ thống</div>
+                                    <div class="chart-subtitle">Load trung bình 1m, 5m và 15m</div>
+                                </div>
+                                <div class="chart-total">${load1m.toFixed(2)}</div>
+                            </div>
+                            <div id="chart-load" class="line-chart"></div>
+                        </div>
                     </div>
                     <div class="section-spaced">
                         <button id="reset-revenue" class="btn-primary"><i class="fas fa-rotate-left" style="margin-right:6px"></i>Reset doanh thu</button>
@@ -223,12 +314,169 @@ window.pageInit = async function(params, query = {}) {
 
                 renderComboChart(document.getElementById('chart-daily'), dailySeries, { maxPoints: 30, labelFormat: 'day' });
                 renderComboChart(document.getElementById('chart-monthly'), monthlySeries, { maxPoints: 12, labelFormat: 'month' });
+                renderComboChart(document.getElementById('chart-load'), loadSeries, {
+                    maxPoints: 3,
+                    legendBarLabel: 'Load',
+                    legendLineLabel: 'Xu hướng',
+                    xLabelFormatter: (label) => label,
+                    valueFormatter: (value) => Number(value || 0).toFixed(2),
+                    gridLabelFormatter: (value) => Number(value || 0).toFixed(1)
+                });
+
+                const hourEl = document.getElementById('clock-hour');
+                const minEl = document.getElementById('clock-minute');
+                const secEl = document.getElementById('clock-second');
+                const dateEl = document.getElementById('dashboard-live-date');
+                const updateClock = () => {
+                    const now = new Date();
+                    if (hourEl) hourEl.textContent = String(now.getHours()).padStart(2, '0');
+                    if (minEl) minEl.textContent = String(now.getMinutes()).padStart(2, '0');
+                    if (secEl) secEl.textContent = String(now.getSeconds()).padStart(2, '0');
+
+                    if (dateEl) {
+                        dateEl.textContent = new Intl.DateTimeFormat('vi-VN', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        }).format(now);
+                    }
+                };
+                updateClock();
+                dashboardClockInterval = setInterval(updateClock, 1000);
                 await loadDashboardSecurityShortcut();
             }
         } catch (error) {
             container.innerHTML = '<p>Không thể tải dashboard.</p>';
-        }
     }
+
+    function showMxhServiceItemModal(item = null, packages = []) {
+        const isEdit = !!item;
+        const modalId = 'mxh-service-item-modal';
+        let modal = document.getElementById(modalId);
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal modal-premium';
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 820px">
+                <div class="modal-header">
+                    <h3 class="section-title" style="margin:0">${isEdit ? 'Chỉnh sửa dịch vụ con' : 'Thêm dịch vụ con'}</h3>
+                    <button class="modal-close" style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="mxh-service-item-form">
+                        <div class="premium-form-grid">
+                            <div class="premium-form-group">
+                                <label>Gói dịch vụ</label>
+                                <select name="package_id" class="premium-input" required>
+                                    <option value="">-- Chọn gói --</option>
+                                    ${packages.map(pkg => `<option value="${pkg.id}" ${String(item?.package_id || '') === String(pkg.id) ? 'selected' : ''}>${escapeHtml(pkg.name || '')} (${escapeHtml(pkg.category_name || '-')})</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Tên dịch vụ con</label>
+                                <input type="text" name="name" class="premium-input" value="${item?.name || ''}" required>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Slug</label>
+                                <input type="text" name="slug" class="premium-input" value="${item?.slug || ''}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Giá</label>
+                                <input type="number" name="price" class="premium-input" value="${item?.price || 0}" required>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Đơn vị</label>
+                                <input type="text" name="unit_label" class="premium-input" value="${item?.unit_label || 'luong'}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>SL tối thiểu</label>
+                                <input type="number" name="quantity_min" class="premium-input" value="${item?.quantity_min || 1}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>SL tối đa</label>
+                                <input type="number" name="quantity_max" class="premium-input" value="${item?.quantity_max || 1000}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>SL mặc định</label>
+                                <input type="number" name="default_quantity" class="premium-input" value="${item?.default_quantity || 100}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Label link</label>
+                                <input type="text" name="link_label" class="premium-input" value="${item?.link_label || 'Link'}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Label ghi chú</label>
+                                <input type="text" name="note_label" class="premium-input" value="${item?.note_label || 'Ghi chu'}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Thứ tự</label>
+                                <input type="number" name="display_order" class="premium-input" value="${item?.display_order || 0}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Trạng thái</label>
+                                <select name="is_active" class="premium-input">
+                                    <option value="1" ${(item?.is_active ?? 1) ? 'selected' : ''}>Hoạt động</option>
+                                    <option value="0" ${!(item?.is_active ?? 1) ? 'selected' : ''}>Tắt</option>
+                                </select>
+                            </div>
+                            <div class="premium-form-group" style="grid-column:1/-1">
+                                <label>Mô tả</label>
+                                <textarea name="description" class="premium-input" rows="3">${item?.description || ''}</textarea>
+                            </div>
+                            <div class="premium-form-group" style="grid-column:1/-1">
+                                <label>Gợi ý form</label>
+                                <textarea name="form_hint" class="premium-input" rows="2">${item?.form_hint || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="form-actions" style="margin-top:24px; display:flex; justify-content:flex-end; gap:12px">
+                            <button type="button" class="btn btn-outline modal-close">Hủy bỏ</button>
+                            <button type="submit" class="btn btn-primary">${isEdit ? 'Lưu thay đổi' : 'Tạo dịch vụ con'}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        modal.classList.add('active');
+        const close = () => modal.classList.remove('active');
+        modal.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', close));
+
+        const form = modal.querySelector('#mxh-service-item-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form).entries());
+            try {
+                const payload = {
+                    ...data,
+                    package_id: parseInt(data.package_id, 10),
+                    price: parseFloat(data.price),
+                    quantity_min: parseInt(data.quantity_min, 10),
+                    quantity_max: parseInt(data.quantity_max, 10),
+                    default_quantity: parseInt(data.default_quantity, 10),
+                    display_order: parseInt(data.display_order, 10),
+                    is_active: data.is_active === '1'
+                };
+                const res = isEdit
+                    ? await api.put(`/mxh/service-items/${item.id}`, payload)
+                    : await api.post('/mxh/service-items', payload);
+                if (res.success) {
+                    showToast(res.message, 'success');
+                    close();
+                    loadMxhServices();
+                } else {
+                    showToast(res.message, 'error');
+                }
+            } catch (err) {
+                showToast('Lỗi khi lưu dịch vụ con', 'error');
+            }
+        });
+    }
+}
 
     async function loadDashboardSecurityShortcut() {
         const slot = document.getElementById('dashboard-security-shortcut');
@@ -523,6 +771,8 @@ window.pageInit = async function(params, query = {}) {
             container.innerHTML = '<p>Không thể tải yêu cầu nạp.</p>';
         }
     }
+
+};
 
     async function loadWithdrawals() {
         const container = document.getElementById('tab-withdrawals');
@@ -3113,6 +3363,21 @@ window.pageInit = async function(params, query = {}) {
         const maxPoints = options.maxPoints || series.length;
         const data = series.slice(-maxPoints);
         const maxVal = Math.max(...data.map(d => d.value || 0), 1);
+        const valueFormatter = typeof options.valueFormatter === 'function'
+            ? options.valueFormatter
+            : (value) => formatMoney(value);
+        const gridLabelFormatter = typeof options.gridLabelFormatter === 'function'
+            ? options.gridLabelFormatter
+            : null;
+        const xLabelFormatter = typeof options.xLabelFormatter === 'function'
+            ? options.xLabelFormatter
+            : (label) => (
+                options.labelFormat === 'month'
+                    ? String(label || '').slice(0, 7)
+                    : String(label || '').slice(5)
+            );
+        const legendBarLabel = options.legendBarLabel || 'Doanh thu';
+        const legendLineLabel = options.legendLineLabel || 'Xu hướng';
 
         const W = 560;
         const H = 200;
@@ -3161,9 +3426,11 @@ window.pageInit = async function(params, query = {}) {
         const gridLines = [0, 0.25, 0.5, 0.75, 1].map(t => {
             const y = PT + (1 - t) * chartH;
             const val = maxVal * t;
-            const label = val >= 1e6 ? `${(val/1e6).toFixed(1)}M`
-                : val >= 1e3 ? `${(val/1e3).toFixed(0)}K`
-                : Math.round(val).toString();
+            const label = gridLabelFormatter
+                ? gridLabelFormatter(val)
+                : val >= 1e6 ? `${(val/1e6).toFixed(1)}M`
+                    : val >= 1e3 ? `${(val/1e3).toFixed(0)}K`
+                    : Number.isInteger(val) ? val.toString() : val.toFixed(1);
             return `
                 <line x1="${PL}" y1="${y}" x2="${W - PR}" y2="${y}"
                     stroke="var(--admin-grid-line,rgba(148,163,184,0.12))" stroke-width="1"
@@ -3178,11 +3445,9 @@ window.pageInit = async function(params, query = {}) {
             const x = sx(i) - barW / 2;
             const yTop = sy(d.value || 0);
             const barH = (PT + chartH) - yTop;
-            const lbl = options.labelFormat === 'month'
-                ? (d.label || '').slice(0, 7)
-                : (d.label || '').slice(5);
+            const lbl = xLabelFormatter(d.label || '', d, i);
             return `
-                <g class="combo-bar-g" data-val="${formatMoney(d.value || 0)}" data-label="${d.label || ''}">
+                <g class="combo-bar-g" data-val="${valueFormatter(d.value || 0, d, i)}" data-label="${d.label || ''}">
                     <rect class="combo-bar-bg"
                         x="${x}" y="${PT}" width="${barW}" height="${chartH}"
                         rx="4" fill="transparent" />
@@ -3191,7 +3456,7 @@ window.pageInit = async function(params, query = {}) {
                         rx="4" fill="url(#${barGradId})"
                         style="transform-origin:${x + barW/2}px ${PT + chartH}px"
                     >
-                        <title>${d.label}: ${formatMoney(d.value || 0)}</title>
+                        <title>${d.label}: ${valueFormatter(d.value || 0, d, i)}</title>
                     </rect>
                     <text x="${sx(i)}" y="${PT + chartH + 16}" class="bar-label" text-anchor="middle">${lbl}</text>
                 </g>
@@ -3201,14 +3466,14 @@ window.pageInit = async function(params, query = {}) {
         // Dots
         const dots = pts.map((p, i) => `
             <circle class="combo-dot" cx="${p.x}" cy="${p.y}" r="4">
-                <title>${data[i].label}: ${formatMoney(data[i].value || 0)}</title>
+                <title>${data[i].label}: ${valueFormatter(data[i].value || 0, data[i], i)}</title>
             </circle>
         `).join('');
 
         container.innerHTML = `
             <div class="combo-legend">
-                <span class="legend-item legend-bar">Doanh thu</span>
-                <span class="legend-item legend-line">Xu hướng</span>
+                <span class="legend-item legend-bar">${legendBarLabel}</span>
+                <span class="legend-item legend-line">${legendLineLabel}</span>
             </div>
             <div class="combo-chart-wrap">
                 <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="combo-svg">
@@ -3656,8 +3921,839 @@ window.pageInit = async function(params, query = {}) {
             }
         });
     }
-};
+    async function loadMxhCategories() {
+        const container = document.getElementById('tab-mxh_categories');
+        if (!container) return;
 
+        try {
+            const [accountRes, serviceRes] = await Promise.all([
+                api.get('/mxh/categories', { kind: 'account' }),
+                api.get('/mxh/categories', { kind: 'service' })
+            ]);
 
+            const accountCategories = accountRes.success ? (accountRes.data || []) : [];
+            const serviceCategories = serviceRes.success ? (serviceRes.data || []) : [];
 
+            const renderRows = (items, kind) => items.length
+                ? items.map(item => `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td><strong>${escapeHtml(item.name || '')}</strong></td>
+                        <td><code>${escapeHtml(item.slug || '')}</code></td>
+                        <td>${escapeHtml(item.platform || '-')}</td>
+                        <td>${escapeHtml(item.description || '-')}</td>
+                        <td>${item.display_order || 0}</td>
+                        <td>
+                            <div class="admin-actions">
+                                <button class="btn-icon btn-edit-mxh-cat" data-kind="${kind}" data-id="${item.id}" title="Sửa"><i class="fas fa-edit"></i></button>
+                                <button class="btn-icon text-danger btn-delete-mxh-cat" data-kind="${kind}" data-id="${item.id}" title="Xóa"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('')
+                : `<tr><td colspan="7" class="text-muted text-center" style="padding:14px">Chưa có danh mục</td></tr>`;
 
+            container.innerHTML = `
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title"><i class="fas fa-share-nodes"></i> Quản lý danh mục MXH</h2>
+                        <p class="section-subtitle">Tách riêng danh mục tài khoản và danh mục dịch vụ.</p>
+                    </div>
+                </div>
+                <section class="section-card section-spaced">
+                    <div class="section-header">
+                        <div>
+                            <h3 class="section-title">Danh mục tài khoản</h3>
+                            <p class="section-subtitle">Dùng cho khu mua bán tài khoản.</p>
+                        </div>
+                        <button class="btn-primary" id="btn-add-account-cat"><i class="fas fa-plus" style="margin-right:6px"></i>Thêm danh mục tài khoản</button>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tên</th>
+                                    <th>Slug</th>
+                                    <th>Platform</th>
+                                    <th>Mô tả</th>
+                                    <th>Thứ tự</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>${renderRows(accountCategories, 'account')}</tbody>
+                        </table>
+                    </div>
+                </section>
+                <section class="section-card section-spaced">
+                    <div class="section-header">
+                        <div>
+                            <h3 class="section-title">Danh mục dịch vụ</h3>
+                            <p class="section-subtitle">Chỉ dùng Facebook, TikTok và Instagram.</p>
+                        </div>
+                        <button class="btn-primary" id="btn-add-service-cat"><i class="fas fa-plus" style="margin-right:6px"></i>Thêm danh mục dịch vụ</button>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tên</th>
+                                    <th>Slug</th>
+                                    <th>Platform</th>
+                                    <th>Mô tả</th>
+                                    <th>Thứ tự</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>${renderRows(serviceCategories, 'service')}</tbody>
+                        </table>
+                    </div>
+                </section>
+            `;
+
+            document.getElementById('btn-add-account-cat')?.addEventListener('click', () => showMxhCatModal(null, null, 'account'));
+            document.getElementById('btn-add-service-cat')?.addEventListener('click', () => showMxhCatModal(null, null, 'service'));
+            container.querySelectorAll('.btn-edit-mxh-cat').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const kind = btn.dataset.kind || 'account';
+                    const id = btn.dataset.id;
+                    const item = (kind === 'service' ? serviceCategories : accountCategories).find(cat => String(cat.id) === String(id));
+                    if (item) showMxhCatModal(item, item.platform || null, kind);
+                });
+            });
+            container.querySelectorAll('.btn-delete-mxh-cat').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('Bạn có chắc muốn xóa danh mục này?')) return;
+                    const res = await api.delete(`/mxh/categories/${btn.dataset.id}`);
+                    showToast(res.message || (res.success ? 'Đã xóa danh mục' : 'Không thể xóa'), res.success ? 'success' : 'error');
+                    if (res.success) loadMxhCategories();
+                });
+            });
+        } catch (error) {
+            container.innerHTML = `<div class="error-state">Lỗi khi tải danh mục MXH</div>`;
+        }
+    }
+
+    async function loadMxhServices() {
+        const container = document.getElementById('tab-mxh_services');
+        if (!container) return;
+
+        try {
+            const [categoriesRes, packagesRes, itemsRes, ordersRes] = await Promise.all([
+                api.get('/mxh/categories', { kind: 'service' }),
+                api.get('/mxh/services', { limit: 100 }),
+                api.get('/mxh/service-items', { limit: 200 }),
+                api.get('/mxh/service-orders', { limit: 100 })
+            ]);
+
+            const categories = categoriesRes.success ? (categoriesRes.data || []) : [];
+            const packages = packagesRes.success ? (packagesRes.data || []) : [];
+            const items = itemsRes.success ? (itemsRes.data || []) : [];
+            const orders = ordersRes.success ? (ordersRes.data || []) : [];
+
+            container.innerHTML = `
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title"><i class="fas fa-bullhorn"></i> Dịch vụ MXH</h2>
+                        <p class="section-subtitle">Quản lý gói dịch vụ và điều phối đơn hàng của user.</p>
+                    </div>
+                    <button id="btn-add-service-package" class="btn-primary"><i class="fas fa-plus" style="margin-right:6px"></i>Thêm gói dịch vụ</button>
+                </div>
+
+                <section class="section-card section-spaced">
+                    <div class="section-header">
+                        <div>
+                            <h3 class="section-title"><i class="fas fa-arrow-trend-up"></i> Nâng/Giảm giá hàng loạt</h3>
+                            <p class="section-subtitle">Thay đổi giá nhanh cho tất cả dịch vụ con hoặc gói dịch vụ.</p>
+                        </div>
+                    </div>
+                    <form id="mxh-bulk-price-form" class="premium-form-grid" style="align-items:flex-end">
+                        <div class="premium-form-group">
+                            <label>Đối tượng điều chỉnh</label>
+                            <select name="target" class="premium-input" required>
+                                <option value="item">Tất cả Dịch vụ con (Khuyên dùng)</option>
+                                <option value="package">Tất cả Gói dịch vụ</option>
+                            </select>
+                        </div>
+                        <div class="premium-form-group">
+                            <label>Cách thức thay đổi</label>
+                            <select name="type" class="premium-input" required>
+                                <option value="percent">Nâng/Giảm theo phần trăm (%)</option>
+                                <option value="amount">Cộng/Trừ số tiền cố định (đ)</option>
+                            </select>
+                        </div>
+                        <div class="premium-form-group">
+                            <label>Giá trị (Số dương để tăng, Số âm để giảm)</label>
+                            <input type="number" step="any" name="value" class="premium-input" placeholder="Ví dụ: 10 hoặc -500" required>
+                        </div>
+                        <div class="premium-form-group">
+                            <button type="submit" class="btn btn-primary" style="height:42px; width:100%"><i class="fas fa-save" style="margin-right:6px"></i>Áp dụng thay đổi</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="section-card section-spaced">
+                    <div class="section-header">
+                        <div>
+                            <h3 class="section-title">Danh mục dịch vụ</h3>
+                            <p class="section-subtitle">Hiện chỉ dùng 3 nền tảng: Facebook, TikTok, Instagram.</p>
+                        </div>
+                        <button id="btn-add-service-category" class="btn-outline"><i class="fas fa-layer-group" style="margin-right:6px"></i>Thêm danh mục</button>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tên</th>
+                                    <th>Slug</th>
+                                    <th>Platform</th>
+                                    <th>Thứ tự</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${categories.length ? categories.map(cat => `
+                                    <tr>
+                                        <td>${cat.id}</td>
+                                        <td><strong>${escapeHtml(cat.name || '')}</strong></td>
+                                        <td><code>${escapeHtml(cat.slug || '')}</code></td>
+                                        <td>${escapeHtml(cat.platform || '-')}</td>
+                                        <td>${cat.display_order || 0}</td>
+                                        <td>
+                                            <div class="admin-actions">
+                                                <button class="btn-icon btn-edit-service-cat" data-id="${cat.id}"><i class="fas fa-edit"></i></button>
+                                                <button class="btn-icon text-danger btn-delete-service-cat" data-id="${cat.id}"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="6" class="text-muted text-center" style="padding:14px">Chưa có danh mục dịch vụ</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section-card section-spaced">
+                    <div class="section-header">
+                        <div>
+                            <h3 class="section-title">Dịch vụ con</h3>
+                            <p class="section-subtitle">Mỗi gói có thể chứa nhiều dịch vụ con với giá và số lượng riêng.</p>
+                        </div>
+                        <button id="btn-add-service-item" class="btn-outline"><i class="fas fa-plus" style="margin-right:6px"></i>Thêm dịch vụ con</button>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Gói</th>
+                                    <th>Tên dịch vụ</th>
+                                    <th>Giá</th>
+                                    <th>SL mặc định</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${items.length ? items.map(item => `
+                                    <tr>
+                                        <td>${item.id}</td>
+                                        <td>
+                                            <strong>${escapeHtml(item.package_name || '-')}</strong>
+                                            <div class="section-subtitle">${escapeHtml(item.category_name || '')}</div>
+                                        </td>
+                                        <td>
+                                            <strong>${escapeHtml(item.name || '')}</strong>
+                                            <div class="section-subtitle">${escapeHtml(item.description || '')}</div>
+                                        </td>
+                                        <td>${formatMoney(item.price)}</td>
+                                        <td>${item.default_quantity || 0}</td>
+                                        <td>${item.is_active ? '<span class="badge badge-success">Hoạt động</span>' : '<span class="badge badge-danger">Tắt</span>'}</td>
+                                        <td>
+                                            <div class="admin-actions">
+                                                <button class="btn-icon btn-edit-service-item" data-id="${item.id}"><i class="fas fa-edit"></i></button>
+                                                <button class="btn-icon text-danger btn-delete-service-item" data-id="${item.id}"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="7" class="text-muted text-center" style="padding:14px">Chưa có dịch vụ con</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section-card section-spaced">
+                    <div class="section-header">
+                        <div>
+                            <h3 class="section-title">Gói dịch vụ</h3>
+                            <p class="section-subtitle">Thiết lập tên, giá, số lượng và mô tả gói.</p>
+                        </div>
+                        <span class="badge badge-info">${packages.length} gói</span>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tên gói</th>
+                                    <th>Danh mục</th>
+                                    <th>Giá</th>
+                                    <th>SL mặc định</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${packages.length ? packages.map(pkg => `
+                                    <tr>
+                                        <td>${pkg.id}</td>
+                                        <td>
+                                            <strong>${escapeHtml(pkg.name || '')}</strong>
+                                            <div class="section-subtitle">${escapeHtml(pkg.description || '')}</div>
+                                        </td>
+                                        <td>${escapeHtml(pkg.category_name || '-')}</td>
+                                        <td>${formatMoney(pkg.price)}</td>
+                                        <td>${pkg.default_quantity || 0}</td>
+                                        <td>${pkg.is_active ? '<span class="badge badge-success">Hoạt động</span>' : '<span class="badge badge-danger">Tắt</span>'}</td>
+                                        <td>
+                                            <div class="admin-actions">
+                                                <button class="btn-icon btn-edit-service" data-id="${pkg.id}"><i class="fas fa-edit"></i></button>
+                                                <button class="btn-icon text-danger btn-delete-service" data-id="${pkg.id}"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="7" class="text-muted text-center" style="padding:14px">Chưa có gói dịch vụ</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section-card section-spaced">
+                    <div class="section-header">
+                        <div>
+                            <h3 class="section-title">Đơn dịch vụ</h3>
+                            <p class="section-subtitle">4 nút hành động: Duyệt, Chờ, Hủy/Hoàn tiền, Test.</p>
+                        </div>
+                        <span class="badge badge-info">${orders.length} đơn</span>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Gói</th>
+                                    <th>Link</th>
+                                    <th>SL</th>
+                                    <th>Tổng</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${orders.length ? orders.map(order => `
+                                    <tr>
+                                        <td>${order.id}</td>
+                                        <td>${escapeHtml(order.user_name || order.user_email || String(order.user_id || ''))}</td>
+                                        <td>${escapeHtml(order.service_name || '-')}</td>
+                                        <td><a href="${escapeHtml(order.link || '#')}" target="_blank" rel="noreferrer">Mở link</a></td>
+                                        <td>${order.quantity}</td>
+                                        <td>${formatMoney(order.total_price)}</td>
+                                        <td><span class="badge ${order.status === 'completed' ? 'badge-success' : order.status === 'cancelled' ? 'badge-danger' : 'badge-info'}">${order.status}</span></td>
+                                        <td>
+                                            <div class="admin-actions admin-actions-wrap">
+                                                <button class="btn-icon btn-order-action" data-action="processing" data-id="${order.id}" title="Chờ"><i class="fas fa-spinner"></i></button>
+                                                <button class="btn-icon btn-order-action" data-action="complete" data-id="${order.id}" title="Duyệt"><i class="fas fa-check"></i></button>
+                                                <button class="btn-icon text-danger btn-order-action" data-action="cancel" data-id="${order.id}" title="Hủy / Hoàn tiền"><i class="fas fa-rotate-left"></i></button>
+                                                <button class="btn-icon btn-order-action" data-action="test" data-id="${order.id}" title="Test"><i class="fas fa-bell"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="8" class="text-muted text-center" style="padding:14px">Chưa có đơn dịch vụ</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            `;
+
+            document.getElementById('btn-add-service-package')?.addEventListener('click', () => showMxhServiceModal(null, categories));
+            document.getElementById('btn-add-service-category')?.addEventListener('click', () => showMxhCatModal(null, null, 'service'));
+
+            const bulkForm = document.getElementById('mxh-bulk-price-form');
+            bulkForm?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(bulkForm);
+                const payload = Object.fromEntries(formData.entries());
+                
+                const targetText = payload.target === 'item' ? 'TẤT CẢ DỊCH VỤ CON' : 'TẤT CẢ GÓI DỊCH VỤ';
+                const typeText = payload.type === 'percent' ? `${payload.value}%` : `${payload.value}đ`;
+                
+                if (!confirm(`Bạn có chắc muốn nâng/giảm giá ${targetText} thêm ${typeText}?`)) {
+                    return;
+                }
+                
+                try {
+                    const res = await api.post('/admin/mxh/bulk-price-update', {
+                        target: payload.target,
+                        type: payload.type,
+                        value: parseFloat(payload.value)
+                    });
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        loadMxhServices();
+                    } else {
+                        showToast(res.message || 'Lỗi khi cập nhật giá', 'error');
+                    }
+                } catch (err) {
+                    showToast('Lỗi kết nối khi cập nhật giá', 'error');
+                }
+            });
+
+            container.querySelectorAll('.btn-edit-service-cat').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cat = categories.find(item => String(item.id) === String(btn.dataset.id));
+                    if (cat) showMxhCatModal(cat, cat.platform || null, 'service');
+                });
+            });
+            container.querySelectorAll('.btn-delete-service-cat').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('Bạn có chắc muốn xóa danh mục dịch vụ này?')) return;
+                    const res = await api.delete(`/mxh/categories/${btn.dataset.id}`);
+                    showToast(res.message || (res.success ? 'Đã xóa danh mục' : 'Không thể xóa'), res.success ? 'success' : 'error');
+                    if (res.success) loadMxhServices();
+                });
+            });
+            container.querySelectorAll('.btn-edit-service').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const pkg = packages.find(item => String(item.id) === String(btn.dataset.id));
+                    if (pkg) showMxhServiceModal(pkg, categories);
+                });
+            });
+            container.querySelectorAll('.btn-delete-service').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('Bạn có chắc muốn xóa gói dịch vụ này?')) return;
+                    const res = await api.delete(`/mxh/services/${btn.dataset.id}`);
+                    showToast(res.message || (res.success ? 'Đã xóa gói dịch vụ' : 'Không thể xóa'), res.success ? 'success' : 'error');
+                    if (res.success) loadMxhServices();
+                });
+            });
+            document.getElementById('btn-add-service-item')?.addEventListener('click', () => showMxhServiceItemModal(null, packages));
+            container.querySelectorAll('.btn-edit-service-item').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const item = items.find(entry => String(entry.id) === String(btn.dataset.id));
+                    if (item) showMxhServiceItemModal(item, packages);
+                });
+            });
+            container.querySelectorAll('.btn-delete-service-item').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a dá»‹ch vá»¥ con nÃ y?')) return;
+                    const res = await api.delete(`/mxh/service-items/${btn.dataset.id}`);
+                    showToast(res.message || (res.success ? 'ÄÃ£ xÃ³a dá»‹ch vá»¥ con' : 'KhÃ´ng thá»ƒ xÃ³a'), res.success ? 'success' : 'error');
+                    if (res.success) loadMxhServices();
+                });
+            });
+            container.querySelectorAll('.btn-order-action').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const action = btn.dataset.action;
+                    const note = prompt('Ghi chú admin (có thể để trống):', '') || '';
+                    const endpoint = action === 'processing' ? 'processing' : action === 'complete' ? 'complete' : action === 'cancel' ? 'cancel' : 'test';
+                    const res = await api.post(`/mxh/service-orders/${btn.dataset.id}/${endpoint}`, { admin_note: note });
+                    showToast(res.message || (res.success ? 'Đã cập nhật đơn' : 'Không thể cập nhật'), res.success ? 'success' : 'error');
+                    if (res.success) loadMxhServices();
+                });
+            });
+        } catch (error) {
+            container.innerHTML = `<div class="error-state">Lỗi khi tải dịch vụ MXH</div>`;
+        }
+    }
+
+    function showMxhCatModal(cat = null, defaultPlatform = null, defaultKind = 'account') {
+        const isEdit = !!cat;
+        const kind = cat?.kind || defaultKind || 'account';
+        const modalId = 'mxh-cat-modal';
+        let modal = document.getElementById(modalId);
+
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal modal-premium';
+            document.body.appendChild(modal);
+        }
+
+        const platformOptions = kind === 'service'
+            ? ['facebook', 'tiktok', 'instagram']
+            : ['facebook', 'tiktok', 'instagram', 'youtube', 'twitter', 'zalo', 'telegram', 'other'];
+
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 720px">
+                <div class="modal-header">
+                    <h3 class="section-title" style="margin:0">${isEdit ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}</h3>
+                    <button class="modal-close" style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="mxh-cat-form">
+                        <div class="premium-form-grid">
+                            <div class="premium-form-group">
+                                <label>Loại danh mục</label>
+                                <select name="kind" class="premium-input">
+                                    <option value="account" ${kind === 'account' ? 'selected' : ''}>Tài khoản MXH</option>
+                                    <option value="service" ${kind === 'service' ? 'selected' : ''}>Dịch vụ MXH</option>
+                                </select>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Tên danh mục</label>
+                                <input type="text" name="name" class="premium-input" value="${cat?.name || ''}" required>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Slug</label>
+                                <input type="text" name="slug" class="premium-input" value="${cat?.slug || ''}" required>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Platform</label>
+                                <select name="platform" class="premium-input">
+                                    ${platformOptions.map(p => `<option value="${p}" ${(cat?.platform || defaultPlatform || platformOptions[0]) === p ? 'selected' : ''}>${p}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Icon</label>
+                                <input type="text" name="icon" class="premium-input" value="${cat?.icon || 'fas fa-share-nodes'}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Màu sắc</label>
+                                <input type="color" name="color" class="premium-input" value="${cat?.color || '#6366f1'}" style="padding:4px; height:48px; width:72px; cursor:pointer">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Thứ tự</label>
+                                <input type="number" name="sort_order" class="premium-input" value="${cat?.display_order || 0}">
+                            </div>
+                            <div class="premium-form-group" style="grid-column:1/-1">
+                                <label>Mô tả</label>
+                                <textarea name="description" class="premium-input" rows="3">${cat?.description || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="form-actions" style="margin-top:24px; display:flex; justify-content:flex-end; gap:12px">
+                            <button type="button" class="btn btn-outline modal-close">Hủy bỏ</button>
+                            <button type="submit" class="btn btn-primary">${isEdit ? 'Lưu thay đổi' : 'Tạo danh mục'}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        modal.classList.add('active');
+        const close = () => modal.classList.remove('active');
+        modal.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', close));
+        const form = modal.querySelector('#mxh-cat-form');
+        const kindSelect = form.querySelector('select[name="kind"]');
+        const platformSelect = form.querySelector('select[name="platform"]');
+        kindSelect.addEventListener('change', () => {
+            const nextKind = kindSelect.value;
+            const options = nextKind === 'service'
+                ? ['facebook', 'tiktok', 'instagram']
+                : ['facebook', 'tiktok', 'instagram', 'youtube', 'twitter', 'zalo', 'telegram', 'other'];
+            platformSelect.innerHTML = options.map(p => `<option value="${p}">${p}</option>`).join('');
+            platformSelect.value = options[0];
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form).entries());
+            try {
+                const payload = { ...data, kind: data.kind || 'account' };
+                const res = isEdit
+                    ? await api.put(`/mxh/categories/${cat.id}`, payload)
+                    : await api.post('/mxh/categories', payload);
+                if (res.success) {
+                    showToast(res.message, 'success');
+                    close();
+                    loadMxhCategories();
+                    loadMxhServices();
+                } else {
+                    showToast(res.message, 'error');
+                }
+            } catch (err) {
+                showToast('Lỗi khi lưu danh mục', 'error');
+            }
+        });
+    }
+
+    function showMxhServiceModal(pkg = null, categories = []) {
+        const isEdit = !!pkg;
+        const modalId = 'mxh-service-modal';
+        let modal = document.getElementById(modalId);
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal modal-premium';
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 820px">
+                <div class="modal-header">
+                    <h3 class="section-title" style="margin:0">${isEdit ? 'Chỉnh sửa gói dịch vụ' : 'Thêm gói dịch vụ'}</h3>
+                    <button class="modal-close" style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="mxh-service-form">
+                        <div class="premium-form-grid">
+                            <div class="premium-form-group">
+                                <label>Danh mục</label>
+                                <select name="category_id" class="premium-input" required>
+                                    <option value="">-- Chọn danh mục --</option>
+                                    ${categories.map(cat => `<option value="${cat.id}" ${String(pkg?.category_id || '') === String(cat.id) ? 'selected' : ''}>${cat.name} (${cat.platform || '-'})</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Tên gói</label>
+                                <input type="text" name="name" class="premium-input" value="${pkg?.name || ''}" required>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Slug</label>
+                                <input type="text" name="slug" class="premium-input" value="${pkg?.slug || ''}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Giá</label>
+                                <input type="number" name="price" class="premium-input" value="${pkg?.price || 0}" required>
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Đơn vị</label>
+                                <input type="text" name="unit_label" class="premium-input" value="${pkg?.unit_label || 'luong'}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>SL tối thiểu</label>
+                                <input type="number" name="quantity_min" class="premium-input" value="${pkg?.quantity_min || 1}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>SL tối đa</label>
+                                <input type="number" name="quantity_max" class="premium-input" value="${pkg?.quantity_max || 1000}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>SL mặc định</label>
+                                <input type="number" name="default_quantity" class="premium-input" value="${pkg?.default_quantity || 100}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Label link</label>
+                                <input type="text" name="link_label" class="premium-input" value="${pkg?.link_label || 'Link'}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Label ghi chú</label>
+                                <input type="text" name="note_label" class="premium-input" value="${pkg?.note_label || 'Ghi chu'}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Thứ tự</label>
+                                <input type="number" name="display_order" class="premium-input" value="${pkg?.display_order || 0}">
+                            </div>
+                            <div class="premium-form-group">
+                                <label>Trạng thái</label>
+                                <select name="is_active" class="premium-input">
+                                    <option value="1" ${(pkg?.is_active ?? 1) ? 'selected' : ''}>Hoạt động</option>
+                                    <option value="0" ${!(pkg?.is_active ?? 1) ? 'selected' : ''}>Tắt</option>
+                                </select>
+                            </div>
+                            <div class="premium-form-group" style="grid-column:1/-1">
+                                <label>Mô tả</label>
+                                <textarea name="description" class="premium-input" rows="3">${pkg?.description || ''}</textarea>
+                            </div>
+                            <div class="premium-form-group" style="grid-column:1/-1">
+                                <label>Gợi ý form</label>
+                                <textarea name="form_hint" class="premium-input" rows="2">${pkg?.form_hint || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="form-actions" style="margin-top:24px; display:flex; justify-content:flex-end; gap:12px">
+                            <button type="button" class="btn btn-outline modal-close">Hủy bỏ</button>
+                            <button type="submit" class="btn btn-primary">${isEdit ? 'Lưu thay đổi' : 'Tạo gói dịch vụ'}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        modal.classList.add('active');
+        const close = () => modal.classList.remove('active');
+        modal.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', close));
+
+        const form = modal.querySelector('#mxh-service-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form).entries());
+            try {
+                const payload = {
+                    ...data,
+                    category_id: parseInt(data.category_id, 10),
+                    price: parseFloat(data.price),
+                    quantity_min: parseInt(data.quantity_min, 10),
+                    quantity_max: parseInt(data.quantity_max, 10),
+                    default_quantity: parseInt(data.default_quantity, 10),
+                    display_order: parseInt(data.display_order, 10),
+                    is_active: data.is_active === '1'
+                };
+                const res = isEdit
+                    ? await api.put(`/mxh/services/${pkg.id}`, payload)
+                    : await api.post('/mxh/services', payload);
+                if (res.success) {
+                    showToast(res.message, 'success');
+                    close();
+                    loadMxhServices();
+                } else {
+                    showToast(res.message, 'error');
+                }
+            } catch (err) {
+                showToast('Lỗi khi lưu gói dịch vụ', 'error');
+            }
+        });
+    }
+
+    async function loadCoupons() {
+        const container = document.getElementById('tab-coupons');
+        if (!container) return;
+
+        try {
+            const response = await api.get('/admin/coupons');
+            if (response.success) {
+                const coupons = response.data;
+                
+                container.innerHTML = `
+                    <div class="section-card">
+                        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <h2 class="section-title" style="margin:0;"><i class="fas fa-ticket-simple" style="margin-right:8px; color:var(--primary);"></i>Quản lý mã giảm giá</h2>
+                            <button class="btn btn-primary" id="btn-create-coupon"><i class="fas fa-plus" style="margin-right:6px;"></i>Tạo mã mới</button>
+                        </div>
+                        
+                        <div id="coupon-form-container" style="display:none; margin-bottom:25px; padding:20px; border:1px solid rgba(255,255,255,0.1); background:rgba(30,41,59,0.4); border-radius:12px;">
+                            <h3 style="margin-top:0; margin-bottom:15px; color:#f1f5f9;">Tạo mã giảm giá mới</h3>
+                            <form id="form-create-coupon">
+                                <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:15px;">
+                                    <div class="form-group">
+                                        <label style="display:block; margin-bottom:6px; color:#94a3b8; font-size:13px;">Mã giảm giá</label>
+                                        <div style="display:flex; gap:8px;">
+                                            <input type="text" id="coupon-code" name="code" placeholder="Ví dụ: KM30" required style="flex-grow:1; background:#1e293b; border:1px solid rgba(255,255,255,0.1); color:#fff; padding:8px 12px; border-radius:6px;">
+                                            <button type="button" id="btn-gen-coupon-code" class="btn btn-outline" style="padding: 0 12px; font-size:12px;">Ngẫu nhiên</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label style="display:block; margin-bottom:6px; color:#94a3b8; font-size:13px;">Loại giảm giá</label>
+                                        <select id="coupon-type" name="discount_type" required style="width:100%; background:#1e293b; border:1px solid rgba(255,255,255,0.1); color:#fff; padding:8px 12px; border-radius:6px;">
+                                            <option value="percent">Phần trăm (%)</option>
+                                            <option value="fixed">Số tiền cố định (đ)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label style="display:block; margin-bottom:6px; color:#94a3b8; font-size:13px;">Giá trị giảm</label>
+                                        <input type="number" id="coupon-value" name="discount_value" placeholder="Ví dụ: 20 hoặc 50000" min="1" required style="width:100%; background:#1e293b; border:1px solid rgba(255,255,255,0.1); color:#fff; padding:8px 12px; border-radius:6px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label style="display:block; margin-bottom:6px; color:#94a3b8; font-size:13px;">Lượt dùng tối đa</label>
+                                        <input type="number" id="coupon-max-uses" name="max_uses" placeholder="Không giới hạn" min="1" style="width:100%; background:#1e293b; border:1px solid rgba(255,255,255,0.1); color:#fff; padding:8px 12px; border-radius:6px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label style="display:block; margin-bottom:6px; color:#94a3b8; font-size:13px;">Ngày hết hạn</label>
+                                        <input type="datetime-local" id="coupon-expiry" name="expires_at" style="width:100%; background:#1e293b; border:1px solid rgba(255,255,255,0.1); color:#fff; padding:8px 12px; border-radius:6px;">
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                                    <button type="button" class="btn btn-outline" id="btn-cancel-coupon">Hủy</button>
+                                    <button type="submit" class="btn btn-primary">Lưu mã</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Mã</th>
+                                        <th>Loại</th>
+                                        <th>Giá trị giảm</th>
+                                        <th>Lượt dùng</th>
+                                        <th>Ngày hết hạn</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${coupons.length === 0 ? '<tr><td colspan="6" style="text-align:center; padding:20px; color:#94a3b8;">Chưa có mã giảm giá nào</td></tr>' : coupons.map(c => `
+                                        <tr>
+                                            <td><strong style="color:var(--primary); font-size:15px;">${c.code}</strong></td>
+                                            <td>${c.discount_type === 'percent' ? 'Phần trăm (%)' : 'Cố định (đ)'}</td>
+                                            <td><span style="font-weight:600; color:#fff;">${c.discount_type === 'percent' ? c.discount_value + '%' : formatMoney(c.discount_value)}</span></td>
+                                            <td><span class="badge badge-info">${c.used_count}</span> / ${c.max_uses !== null ? `<span class="badge badge-outline">${c.max_uses}</span>` : '<span style="color:#64748b">Vô hạn</span>'}</td>
+                                            <td>${c.expires_at ? new Date(c.expires_at).toLocaleString('vi-VN') : '<span style="color:#64748b">Không giới hạn</span>'}</td>
+                                            <td>
+                                                <button class="btn btn-danger-outline btn-sm delete-coupon-btn" data-id="${c.id}" data-code="${c.code}"><i class="fas fa-trash-can" style="margin-right:4px;"></i>Xóa</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                const btnCreate = container.querySelector('#btn-create-coupon');
+                const btnCancel = container.querySelector('#btn-cancel-coupon');
+                const formContainer = container.querySelector('#coupon-form-container');
+                const form = container.querySelector('#form-create-coupon');
+                const btnGen = container.querySelector('#btn-gen-coupon-code');
+                const inputCode = container.querySelector('#coupon-code');
+
+                btnCreate.addEventListener('click', () => {
+                    formContainer.style.display = 'block';
+                    btnCreate.style.display = 'none';
+                });
+
+                btnCancel.addEventListener('click', () => {
+                    formContainer.style.display = 'none';
+                    btnCreate.style.display = 'inline-block';
+                    form.reset();
+                });
+
+                btnGen.addEventListener('click', () => {
+                    const randomCode = 'KM' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                    inputCode.value = randomCode;
+                });
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const payload = {
+                        code: form.code.value,
+                        discount_type: form.discount_type.value,
+                        discount_value: parseFloat(form.discount_value.value),
+                        max_uses: form.max_uses.value ? parseInt(form.max_uses.value) : null,
+                        expires_at: form.expires_at.value ? form.expires_at.value : null
+                    };
+
+                    try {
+                        const res = await api.post('/admin/coupons', payload);
+                        if (res.success) {
+                            showToast('Tạo mã giảm giá thành công!', 'success');
+                            form.reset();
+                            formContainer.style.display = 'none';
+                            btnCreate.style.display = 'inline-block';
+                            await loadCoupons();
+                        }
+                    } catch (err) {
+                        showToast(err.message || 'Không thể tạo mã giảm giá', 'error');
+                    }
+                });
+
+                container.querySelectorAll('.delete-coupon-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const code = btn.dataset.code;
+                        if (!confirm(`Bạn có chắc chắn muốn xóa mã giảm giá ${code}?`)) return;
+                        try {
+                            const res = await api.delete(`/admin/coupons/${btn.dataset.id}`);
+                            if (res.success) {
+                                showToast('Đã xóa mã giảm giá!', 'success');
+                                await loadCoupons();
+                            }
+                        } catch (err) {
+                            showToast(err.message || 'Không thể xóa mã giảm giá', 'error');
+                        }
+                    });
+                });
+            }
+        } catch (error) {
+            container.innerHTML = '<p>Không thể tải danh sách mã giảm giá.</p>';
+        }
+    }

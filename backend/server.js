@@ -128,7 +128,11 @@ function isSocialPreviewBot(req) {
         'skypeuripreview',
         'whatsapp',
         'pinterest',
-        'vkshare'
+        'vkshare',
+        'zalo',
+        'googlebot',
+        'bingbot',
+        'applebot'
     ].some(token => userAgent.includes(token));
 }
 

@@ -531,38 +531,45 @@ html[data-theme="dark"] .account-side-menu {
 }
 
 .account-side-menu-head {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 80px;
-    padding: 24px 20px 16px;
+    min-height: 0;
+    padding: 0;
     background: transparent;
 }
 
-.account-side-menu-brand-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 24px;
-    font-weight: 800;
-    color: var(--ink);
-    letter-spacing: -0.02em;
+.account-side-menu-brand {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
 }
 
-.account-side-menu-brand-link i {
-    font-size: 28px;
-    background: linear-gradient(135deg, var(--primary), #10b981);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.account-side-menu-brand-link {
+    display: block;
+    width: 100%;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
 .account-side-menu-close {
-    width: 40px;
-    height: 40px;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    width: 36px;
+    height: 36px;
     border: none;
-    border-radius: 12px;
-    background: rgba(148, 163, 184, 0.1);
-    color: var(--muted);
+    border-radius: 10px;
+    background: rgba(148, 163, 184, 0.25);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    color: var(--ink);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -571,7 +578,7 @@ html[data-theme="dark"] .account-side-menu {
 }
 
 .account-side-menu-close:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(239, 68, 68, 0.2);
     color: #ef4444;
     transform: rotate(90deg);
 }
@@ -849,6 +856,8 @@ html[data-theme="dark"] .account-side-menu-logout:hover {
     display: inline-block;
     flex-shrink: 0;
     overflow: visible; /* Let frame extend outside */
+    border-radius: 50%;
+    background: var(--surface, #fff);
 }
 
 .avatar-base {
@@ -864,8 +873,8 @@ html[data-theme="dark"] .account-side-menu-logout:hover {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 160%;
-    height: 160%;
+    width: 130%;
+    height: 130%;
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 2;
@@ -5224,9 +5233,9 @@ html[data-theme="dark"] .review-form-card p {
 
     body.has-account-side-menu .account-side-menu-head {
         min-height: auto;
-        padding: 30px 24px 20px;
+        padding: 0;
         border-bottom: 1px solid rgba(148, 163, 184, 0.08);
-        background: linear-gradient(180deg, rgba(14, 165, 164, 0.05), transparent);
+        background: transparent;
     }
 
     body.has-account-side-menu .account-side-menu-body {
@@ -5317,6 +5326,208 @@ html[data-theme="dark"] .reward-history-item-amount {
 
 html[data-theme="dark"] .checkin-highlight-title {
     color: #f8fafc;
+}
+
+/* Dark mode for reward-checkin-page */
+html[data-theme="dark"] .reward-checkin-page .checkin-hero-shell {
+    border-color: rgba(45, 212, 191, 0.2);
+    background:
+        radial-gradient(circle at top right, rgba(45, 212, 191, 0.1), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(96, 165, 250, 0.08), transparent 38%),
+        linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.98));
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-hero-shell::before {
+    background: rgba(45, 212, 191, 0.06);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-eyebrow {
+    background: rgba(248, 250, 252, 0.08);
+    color: #2dd4bf;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-hero-copy .page-title {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-hero-copy .section-subtitle {
+    color: #cbd5e1;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-highlight-surface,
+html[data-theme="dark"] .reward-checkin-page .checkin-history-card,
+html[data-theme="dark"] .reward-checkin-page .checkin-side-card {
+    border-color: rgba(45, 212, 191, 0.15);
+    background:
+        radial-gradient(circle at top right, rgba(45, 212, 191, 0.08), transparent 32%),
+        linear-gradient(135deg, rgba(45, 212, 191, 0.06), transparent 34%),
+        linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(15, 23, 42, 0.96));
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-highlight-amount {
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(15, 23, 42, 0.96));
+    border-color: rgba(45, 212, 191, 0.2);
+    color: #2dd4bf;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-insight-card {
+    border-color: rgba(45, 212, 191, 0.12);
+    background: rgba(15, 23, 42, 0.6);
+    box-shadow: inset 0 1px 0 rgba(248, 250, 252, 0.05);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-insight-card span {
+    color: #94a3b8;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-insight-card strong {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-day-chip {
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(15, 23, 42, 0.96));
+    border-color: rgba(45, 212, 191, 0.12);
+    box-shadow: 0 14px 26px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-day-chip-state {
+    background: rgba(45, 212, 191, 0.12);
+    color: #2dd4bf;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-day-chip-amount {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-day-chip-title {
+    color: #cbd5e1;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-day-chip.is-next {
+    border-color: rgba(45, 212, 191, 0.28);
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(17, 24, 39, 0.98)),
+        linear-gradient(135deg, rgba(45, 212, 191, 0.12), transparent 60%);
+    box-shadow: 0 20px 32px rgba(45, 212, 191, 0.15);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-day-chip.is-next .checkin-day-chip-state {
+    background: rgba(45, 212, 191, 0.18);
+    color: #2dd4bf;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-day-chip.is-claimed {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(17, 24, 39, 0.98));
+    border-color: rgba(34, 197, 94, 0.2);
+}
+
+html[data-theme="dark"] .reward-checkin-page .section-header .section-subtitle {
+    color: #cbd5e1;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-hero-note {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(45, 212, 191, 0.12);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-hero-note-label {
+    color: #2dd4bf;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-hero-note p {
+    color: #cbd5e1;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-note-list li {
+    color: #cbd5e1;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-note-list li::marker {
+    color: #06b6d4;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-progress-card,
+html[data-theme="dark"] .reward-checkin-page .checkin-history-card,
+html[data-theme="dark"] .reward-checkin-page .checkin-side-card {
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(15, 23, 42, 0.96));
+    border: 1px solid rgba(45, 212, 191, 0.12);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-progress-card .section-header,
+html[data-theme="dark"] .reward-checkin-page .checkin-progress-card .section-title,
+html[data-theme="dark"] .reward-checkin-page .checkin-history-card .section-title {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .reward-checkin-page .section-card .section-subtitle {
+    color: #cbd5e1;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-history-item {
+    border-color: rgba(45, 212, 191, 0.1);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-history-item:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-history-marker {
+    background: linear-gradient(135deg, #06b6d4, #14b8a6);
+    box-shadow: 0 0 0 5px rgba(6, 182, 212, 0.15);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-reward-day {
+    background: rgba(15, 23, 42, 0.6);
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-reward-item {
+    border-color: rgba(45, 212, 191, 0.1);
+    background: rgba(15, 23, 42, 0.4);
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-reward-item .checkin-reward-label {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-reward-item .checkin-reward-desc {
+    color: #cbd5e1;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-reward-item.is-next .checkin-reward-day {
+    background: linear-gradient(135deg, rgba(45, 212, 191, 0.18), rgba(96, 165, 250, 0.16));
+    color: #2dd4bf;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-reward-item.is-next .checkin-reward-state {
+    background: rgba(45, 212, 191, 0.14);
+    color: #2dd4bf;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-reward-item.is-claimed .checkin-reward-day {
+    background: rgba(34, 197, 94, 0.16);
+    color: #4ade80;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-reward-state {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-history-date {
+    color: #94a3b8;
+}
+
+html[data-theme="dark"] .reward-checkin-page .checkin-history-amount {
+    color: #4ade80;
+}
+
+html[data-theme="dark"] .reward-checkin-page .section-header .badge {
+    background: rgba(45, 212, 191, 0.12);
+    color: #2dd4bf;
+    border-color: rgba(45, 212, 191, 0.2);
 }
 
 /* HEADER USER SECTION REDESIGN */
@@ -8058,6 +8269,333 @@ html[data-theme="dark"] .mxhd-cred-warning { border-top-color: #334155; }
         padding: 14px;
         border-radius: 18px;
     }
+}
+
+.account-side-menu-logo-img {
+    display: block;
+    width: calc(100% + 2px);
+    margin-left: -1px;
+    margin-top: -1px;
+    height: auto;
+    object-fit: contain;
+    border-radius: 0;
+    filter: none;
+}
+
+body.sidebar-collapsed .account-side-menu-brand {
+    width: 44px;
+    margin: 0 auto;
+}
+
+body.sidebar-collapsed .account-side-menu-logo-img {
+    width: calc(100% + 2px);
+    margin-left: -1px;
+    margin-top: -1px;
+    height: auto;
+}
+
+/* Checkout Invoice Card & Coupon styles for Light/Dark themes */
+.checkout-invoice-card {
+    margin: 15px 0;
+    padding: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--ink);
+}
+
+.checkout-invoice-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.invoice-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.invoice-item-value {
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.invoice-item-highlight {
+    font-weight: 600;
+    color: #10b981;
+}
+
+.invoice-total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+    border-top: 1px dashed var(--border);
+    padding-top: 12px;
+    font-weight: 700;
+}
+
+.invoice-total-label {
+    color: var(--ink);
+}
+
+.invoice-total-value {
+    color: var(--accent);
+    font-size: 16px;
+}
+
+.payment-method-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 16px;
+    margin-bottom: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    color: #fbbf24;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.invoice-remaining-value {
+    font-weight: 600;
+}
+.invoice-remaining-value.sufficient {
+    color: #10b981;
+}
+.invoice-remaining-value.insufficient {
+    color: #ef4444;
+}
+
+.insufficient-balance-alert {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: #ef4444;
+}
+
+html[data-theme="dark"] .insufficient-balance-alert {
+    color: #f87171;
+}
+
+.coupon-section {
+    margin: 15px 0;
+    padding: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.coupon-label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.coupon-input-field {
+    flex-grow: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.coupon-input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Premium Clock Card Styling */
+.premium-clock-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+    border: 1px solid rgba(99, 102, 241, 0.25) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+    padding: 24px;
+    border-radius: var(--radius-lg);
+}
+
+html[data-theme="dark"] .premium-clock-card {
+    background: linear-gradient(135deg, #020617 0%, #0f172a 100%) !important;
+}
+
+.clock-glass-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.clock-card-content {
+    position: relative;
+    z-index: 2;
+}
+
+.clock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+}
+
+.clock-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.clock-title-wrap i {
+    color: #6366f1;
+}
+
+.clock-live-dot {
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #ef4444;
+    animation: clock-pulse 1.5s infinite;
+}
+
+@keyframes clock-pulse {
+    0% { transform: scale(0.9); opacity: 0.6; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+.clock-display-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.digital-clock-face {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 54px;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: 2px;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.clock-num {
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    min-width: 76px;
+    text-align: center;
+}
+
+.clock-colon {
+    font-size: 44px;
+    margin: 0 4px;
+    color: rgba(99, 102, 241, 0.8);
+    animation: flash 1s infinite;
+}
+
+@keyframes flash {
+    0% { opacity: 0.2; }
+    50% { opacity: 1; }
+    100% { opacity: 0.2; }
+}
+
+.text-gradient-primary {
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none !important;
+}
+
+.date-display {
+    margin-top: 16px;
+    font-size: 15px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.date-display i {
+    color: #818cf8;
+}
+
+.clock-footer-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 12px;
+}
+
+.clock-footer-meta strong {
+    color: #10b981;
+}
+
+/* Grouped Dashboard Stats Styling */
+.dashboard-stats-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.stats-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.stats-group-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 16px 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.85;
 }
 
 

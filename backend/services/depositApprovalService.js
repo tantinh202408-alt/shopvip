@@ -55,7 +55,7 @@ async function processDepositApproval(requestId, {
             const [existingTransactions] = await connection.execute(
                 `SELECT id
                  FROM transactions
-                 WHERE type = 'deposit' AND reference_id = ?
+                 WHERE type = 'deposit' AND reference_id = ? AND description = 'Deposit approved'
                  LIMIT 1`,
                 [requestId]
             );

@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // AUTHENTICATION HELPER
 // File: frontend/js/auth.js
 // ============================================
@@ -58,6 +58,7 @@ const Auth = {
         return !!adminPath && String(path || '').trim() === adminPath;
     },
 
+
     // Get user balance
     getBalance() {
         const user = this.getCurrentUser();
@@ -70,6 +71,9 @@ const Auth = {
         if (current) {
             const updated = { ...current, ...userData };
             localStorage.setItem('user', JSON.stringify(updated));
+            if (window.appInstance && typeof window.appInstance.updateUserSection === 'function') {
+                window.appInstance.updateUserSection();
+            }
         }
     }
 };

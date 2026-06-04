@@ -88,7 +88,7 @@ class MissionController {
                 shortLink = shortResult.shortUrl || destinationUrl;
                 provider = shortResult.provider || 'link4m';
             } catch (error) {
-                shortLinkError = error.message || 'Khong the tao link Link4m';
+                shortLinkError = error.message || 'Không thể tạo link Link4m';
             }
 
             res.json({
@@ -96,11 +96,10 @@ class MissionController {
                 data: {
                     link: shortLink,
                     shortLink,
-                    directLink: destinationUrl,
                     provider,
                     shortLinkError,
                     completedToday: Boolean(existing[0]?.is_used),
-                    message: 'Vuot link de lay key doc quyen. Key chi dung duoc 1 lan.'
+                    message: 'Vượt link để lấy key độc quyền. Key chỉ dùng được 1 lần.'
                 }
             });
         } catch (error) {
@@ -117,7 +116,7 @@ class MissionController {
             const today = getDateKey();
             const key = String(req.body?.key || '').trim();
             if (!key) {
-                const error = new Error('Vui long nhap key.');
+                const error = new Error('Vui lòng nhập key.');
                 error.statusCode = 400;
                 throw error;
             }
@@ -130,7 +129,7 @@ class MissionController {
                 [key, userId, today]
             );
             if (records.length === 0 || Number(records[0].is_used) === 1) {
-                const error = new Error('Key khong hop le hoac da duoc su dung.');
+                const error = new Error('Key không hợp lệ hoặc đã được sử dụng.');
                 error.statusCode = 400;
                 throw error;
             }
@@ -154,14 +153,14 @@ class MissionController {
                 `INSERT INTO transactions
                  (user_id, type, amount, balance_before, balance_after, description)
                  VALUES (?, 'mission_reward', ?, ?, ?, ?)`,
-                [userId, MISSION_REWARD, before, after, `Thuong nhiem vu vuot link ${today}`]
+                [userId, MISSION_REWARD, before, after, `Thưởng nhiệm vụ vượt link ${today}`]
             );
 
             await connection.commit();
 
             res.json({
                 success: true,
-                message: `Da cong ${MISSION_REWARD}d vao tai khoan.`,
+                message: `Đã cộng ${MISSION_REWARD}đ vào tài khoản.`,
                 data: {
                     rewardAmount: MISSION_REWARD,
                     newBalance: after

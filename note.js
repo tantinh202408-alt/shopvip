@@ -1,491 +1,393 @@
-// ==UserScript==
-// @name         TikTok Report Bot - FIXED CLICK
-// @namespace    http://tampermonkey.net/
-// @version      18.1
-// @description  Fix click upload và agreements
-// @match        https://www.tiktok.com/legal/report/feedback*
-// @match        https://www.tiktok.com/report*
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @grant        GM_notification
-// @grant        GM_addStyle
-// @run-at       document-end
-// ==/UserScript==
+const crypto = require('crypto');
+const axios = require('axios');
+const https = require('https');
 
-(function () {
-    'use strict';
+// Bỏ qua SSL verification (tương tự verify=False trong Python)
+const httpsAgent = new https.Agent({
+    rejectUnauthorized: false
+});
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+// Domain list
+const __domains = [
+    "api22-core-c-useast1a.tiktokv.com",
+    "api19-core-c-useast1a.tiktokv.com",
+    "api16-core-c-useast1a.tiktokv.com",
+    "api21-core-c-useast1a.tiktokv.com"
+];
+
+// Device list
+const __devices = [
+    "SM-G9900", "SM-A136U1", "SM-M225FV", "SM-E426B", "SM-M526BR",
+    "SM-M326B", "SM-A528B", "SM-F711B", "SM-F926B", "SM-A037G",
+    "SM-A225F", "SM-M325FV", "SM-A226B", "SM-M426B", "SM-A525F", "SM-N976N"
+];
+
+// Version list
+const __versions = [
+    "190303", "190205", "190204", "190103", "180904",
+    "180804", "180803", "180802", "270204"
+];
+
+class Gorgon {
+    constructor(params, data, cookies, unix) {
+        this.unix = unix;
+        this.params = params;
+        this.data = data;
+        this.cookies = cookies;
+    }
+
+    hash(data) {
+        try {
+            return crypto.createHash('md5').update(data).digest('hex');
+        } catch (e) {
+            return crypto.createHash('md5').update(String(data)).digest('hex');
+        }
+    }
+
+    getBaseString() {
+        let baseStr = this.hash(this.params);
+        baseStr += this.data ? this.hash(this.data) : '0'.repeat(32);
+        baseStr += this.cookies ? this.hash(this.cookies) : '0'.repeat(32);
+        return baseStr;
+    }
+
+    reverse(num) {
+        let tmpString = this.hexString(num);
+        return parseInt(tmpString[1] + tmpString[0], 16);
+    }
+
+    rbitAlgorithm(num) {
+        let result = '';
+        let tmpString = num.toString(2);
+        while (tmpString.length < 8) {
+            tmpString = '0' + tmpString;
+        }
+        for (let i = 0; i < 8; i++) {
+            result += tmpString[7 - i];
+        }
+        return parseInt(result, 2);
+    }
+
+    hexString(num) {
+        let tmpString = num.toString(16);
+        if (tmpString.length < 2) {
+            tmpString = '0' + tmpString;
+        }
+        return tmpString;
+    }
+
+    encrypt(data) {
+        const unix = this.unix;
+        const lenVal = 20;
+        const key = [223, 119, 185, 64, 185, 155, 132, 131, 209, 185, 203, 209, 247, 194, 185, 133, 195, 208, 251, 195];
+        let paramList = [];
+
+        for (let i = 0; i < 12; i += 4) {
+            let temp = data.slice(8 * i, 8 * (i + 1));
+            for (let j = 0; j < 4; j++) {
+                let H = parseInt(temp.slice(j * 2, (j + 1) * 2), 16);
+                paramList.push(H);
+            }
+        }
+
+        paramList.push(...[0, 6, 11, 28]);
+        
+        let H = parseInt(unix.toString(16), 16);
+        paramList.push((H & 0xff000000) >> 24);
+        paramList.push((H & 0x00ff0000) >> 16);
+        paramList.push((H & 0x0000ff00) >> 8);
+        paramList.push((H & 0x000000ff) >> 0);
+        
+        let eorResultList = [];
+        for (let i = 0; i < paramList.length; i++) {
+            eorResultList.push(paramList[i] ^ key[i]);
+        }
+
+        for (let i = 0; i < lenVal; i++) {
+            let C = this.reverse(eorResultList[i]);
+            let D = eorResultList[(i + 1) % lenVal];
+            let E = C ^ D;
+            let F = this.rbitAlgorithm(E);
+            let H = (F ^ 0xffffffff ^ lenVal) & 0xff;
+            eorResultList[i] = H;
+        }
+
+        let result = '';
+        for (let param of eorResultList) {
+            result += this.hexString(param);
+        }
+        
+        return {
+            'X-Gorgon': '0404b0d30000' + result,
+            'X-Khronos': String(unix)
+        };
+    }
+
+    getValue() {
+        const baseStr = this.getBaseString();
+        return this.encrypt(baseStr);
+    }
+}
+
+// Hàm tạo params URL
+function buildParams(device_id, install_id) {
+    const version = __versions[Math.floor(Math.random() * __versions.length)];
+    const device_type = __devices[Math.floor(Math.random() * __devices.length)];
+    
+    const params = {
+        os_api: "25",
+        device_type: device_type,
+        ssmix: "a",
+        manifest_version_code: version,
+        dpi: "240",
+        region: "VN",
+        carrier_region: "VN",
+        app_name: "musically_go",
+        version_name: "27.2.4",
+        timezone_offset: "-28800",
+        ab_version: "27.2.4",
+        ac2: "wifi",
+        ac: "wifi",
+        app_type: "normal",
+        channel: "googleplay",
+        update_version_code: version,
+        device_platform: "android",
+        iid: install_id,
+        build_number: "27.2.4",
+        locale: "vi",
+        op_region: "VN",
+        version_code: version,
+        timezone_name: "Asia/Ho_Chi_Minh",
+        device_id: device_id,
+        sys_region: "VN",
+        app_language: "vi",
+        resolution: "720*1280",
+        device_brand: "samsung",
+        language: "vi",
+        os_version: "7.1.2",
+        aid: "1340"
+    };
+    
+    return new URLSearchParams(params).toString();
+}
+
+// Hàm gửi request view
+async function sendView(aweme_id, device_id, install_id, cdid, openudid, proxy = null) {
+    try {
+        const params = buildParams(device_id, install_id);
+        const payload = `item_id=${aweme_id}&play_delta=1`;
+        const unixTime = Math.floor(Date.now() / 1000);
+        
+        const sig = new Gorgon(params, payload, null, unixTime).getValue();
+        
+        const domain = __domains[Math.floor(Math.random() * __domains.length)];
+        const url = `https://${domain}/aweme/v1/aweme/stats/?${params}`;
+        
+        const headers = {
+            'cookie': 'sessionid=90c38a59d8076ea0fbc01c8643efbe47',
+            'x-gorgon': sig['X-Gorgon'],
+            'x-khronos': sig['X-Khronos'],
+            'user-agent': 'com.zhiliaoapp.musically/2022405030 (Linux; U; Android 12; vi_VN; SM-G9900; Build/TP1A.220624.014; Cronet/58.0.2991.0)',
+            'content-type': 'application/x-www-form-urlencoded'
+        };
+        
+        const requestConfig = {
+            method: 'POST',
+            url: url,
+            data: payload,
+            headers: headers,
+            httpsAgent: httpsAgent
+        };
+        
+        if (proxy) {
+            requestConfig.proxy = {
+                host: proxy.split(':')[0],
+                port: parseInt(proxy.split(':')[1])
+            };
+        }
+        
+        const response = await axios(requestConfig);
+        
+        if (response.data && response.data.status_code === 0) {
+            return { success: true, message: 'View added successfully' };
+        } else {
+            return { success: false, message: 'Failed to add view' };
+        }
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+}
+
+// Hàm lấy video ID từ link
+function extractVideoId(link) {
+    const patterns = [
+        /(\d{18,19})/,
+        /video\/(\d+)/,
+        /share\/video\/(\d+)/
+    ];
+    
+    for (const pattern of patterns) {
+        const match = link.match(pattern);
+        if (match) {
+            return match[1];
+        }
+    }
+    
+    // Nếu link ngắn, cần redirect
+    if (link.includes('tiktok.com') && !link.includes('vm.tiktok')) {
+        return null;
+    }
+    
+    return null;
+}
+
+// Hàm fetch proxy từ các nguồn
+async function fetchProxies() {
+    const urlList = [
+        "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxy-list/data.txt",
+        "https://raw.githubusercontent.com/UptimerBot/proxy-list/main/proxies/http.txt",
+        "https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/http.txt",
+        "https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/socks4.txt",
+        "https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/socks5.txt"
+    ];
+    
+    let allProxies = [];
+    
+    for (const url of urlList) {
+        try {
+            const response = await axios.get(url, { timeout: 5000 });
+            if (response.data) {
+                const proxies = response.data.split('\n').filter(line => line.trim());
+                allProxies.push(...proxies);
+            }
+        } catch (error) {
+            // Bỏ qua lỗi
+        }
+    }
+    
+    return [...new Set(allProxies)]; // Loại bỏ trùng lặp
+}
+
+// Hàm chính
+async function main() {
+    // Đọc cấu hình
+    const fs = require('fs');
+    let config = {
+        proxy: {
+            "use-proxy": false,
+            "proxy-type": "http",
+            "proxyscrape": true,
+            "credential": "",
+            "auth": false
+        }
+    };
+    
+    let devices = [];
+    let link = null;
+    
+    // Đọc link từ file nếu có
+    if (fs.existsSync('current_link.txt')) {
+        link = fs.readFileSync('current_link.txt', 'utf8').trim();
+        console.log(`\x1b[1;33m[+] Tự động lấy link: ${link}\x1b[0m`);
+    }
+    
+    // Đọc devices
+    if (fs.existsSync('devices.txt')) {
+        devices = fs.readFileSync('devices.txt', 'utf8').split('\n').filter(line => line.trim());
     } else {
-        init();
+        fs.writeFileSync('devices.txt', 'did:iid:cdid:openudid');
+        devices = ['did:iid:cdid:openudid'];
     }
-
-    function init() {
-        setTimeout(() => {
-            new TikTokReportBot();
-        }, 2000);
+    
+    // Đọc config
+    if (fs.existsSync('config.json')) {
+        config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+    } else {
+        fs.writeFileSync('config.json', JSON.stringify(config, null, 2));
     }
-
-    class TikTokReportBot {
-        constructor() {
-            this.running = false;
-            this.createPanel();
-            this.loadSettings();
-            this.log("✅ Bot đã sẵn sàng!");
-        }
-
-        log(msg, type = 'info') {
-            const logDiv = document.getElementById('tt-log');
-            if (!logDiv) return;
-            const time = new Date().toLocaleTimeString();
-            const colors = { error: 'red', success: 'green', info: 'black' };
-            logDiv.innerHTML += `<div style="color: ${colors[type]}; border-bottom: 1px solid #ddd; padding: 4px; font-size: 11px;">[${time}] ${msg}</div>`;
-            logDiv.scrollTop = logDiv.scrollHeight;
-            console.log(msg);
-        }
-
-        wait(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        async clickElement(element, timeout = 10000) {
-            if (!element) return false;
-
-            try {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                await this.wait(300);
-
-                // Click bằng nhiều cách
-                element.click();
-                element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-                element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-
-                await this.wait(500);
-                return true;
-            } catch (e) {
-                this.log(`Click lỗi: ${e.message}`, 'error');
-                return false;
-            }
-        }
-
-        async clickTopic() {
-            this.log("📍 Bước 1: Click Topic...");
-
-            let topic = document.querySelector('div[aria-label="Topic"]');
-            if (!topic) topic = document.querySelector('[aria-label="Topic"]');
-
-            if (!topic) {
-                const divs = document.querySelectorAll('div');
-                for (let div of divs) {
-                    if (div.textContent === 'Topic') {
-                        topic = div;
-                        break;
-                    }
-                }
-            }
-
-            if (!topic) {
-                throw new Error("Không tìm thấy Topic!");
-            }
-
-            await this.clickElement(topic);
-            this.log("✅ Đã click Topic");
-            await this.wait(1500);
-            return true;
-        }
-
-        async selectOption5() {
-            this.log("📍 Bước 2: Chọn Report an underage user...");
-
-            let option = document.querySelector('#option_5');
-            if (!option) {
-                const options = document.querySelectorAll('div, li, button');
-                for (let el of options) {
-                    if (el.textContent && el.textContent.includes('Report an underage user')) {
-                        option = el;
-                        break;
-                    }
-                }
-            }
-
-            if (!option) {
-                throw new Error("Không tìm thấy option 5!");
-            }
-
-            await this.clickElement(option);
-            this.log("✅ Đã chọn Report an underage user");
-            await this.wait(2000);
-            return true;
-        }
-
-        async selectOption2_0() {
-            this.log("📍 Bước 3: Chọn I'm a parent or legal guardian...");
-
-            let option = document.querySelector('#option2_0');
-            if (!option) {
-                const options = document.querySelectorAll('div, li, button');
-                for (let el of options) {
-                    if (el.textContent && (el.textContent.includes('parent') || el.textContent.includes('guardian'))) {
-                        option = el;
-                        break;
-                    }
-                }
-            }
-
-            if (option) {
-                await this.clickElement(option);
-                this.log("✅ Đã chọn parent/guardian");
-                await this.wait(2000);
+    
+    // Fetch proxies nếu cần
+    let proxies = [];
+    if (config.proxy['use-proxy'] && config.proxy['proxyscrape']) {
+        proxies = await fetchProxies();
+        console.log(`\x1b[1;32m[+] Fetched ${proxies.length} proxies\x1b[0m`);
+    } else if (config.proxy['use-proxy'] && fs.existsSync('proxies.txt')) {
+        proxies = fs.readFileSync('proxies.txt', 'utf8').split('\n').filter(line => line.trim());
+    }
+    
+    // Xóa màn hình
+    console.clear();
+    console.log('\x1b[1;34m TikTok View Bot \x1b[0m');
+    
+    // Nhập link nếu chưa có
+    if (!link) {
+        const readline = require('readline').createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+        
+        link = await new Promise(resolve => {
+            readline.question('\x1b[1;32m LINK VIDEO TikTok: \x1b[1;37m', resolve);
+        });
+        readline.close();
+    }
+    
+    // Trích xuất video ID
+    let aweme_id = extractVideoId(link);
+    if (!aweme_id) {
+        console.log('\x1b[1;31m INVALID LINK\x1b[0m');
+        process.exit(1);
+    }
+    
+    console.log(`\x1b[1;32m[+] Video ID: ${aweme_id}\x1b[0m`);
+    console.log('\x1b[1;37m- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\x1b[0m');
+    
+    let success = 0;
+    let fails = 0;
+    let reqs = 0;
+    
+    // Stats loop
+    setInterval(() => {
+        process.stdout.write(`\r\x1b[1;31m[SD\x1b[0m] \x1b[1;32mDONE: ${success} \x1b[1;34m| \x1b[1;31mFAIL: ${fails} \x1b[1;34m| \x1b[1;33mREQS: ${reqs}\x1b[0m`);
+    }, 1000);
+    
+    // Main loop - gửi view liên tục
+    while (true) {
+        try {
+            const device = devices[Math.floor(Math.random() * devices.length)];
+            const [did, iid, cdid, openudid] = device.split(':');
+            
+            const proxy = proxies.length > 0 ? proxies[Math.floor(Math.random() * proxies.length)] : null;
+            const proxyConfig = config.proxy['use-proxy'] && proxy ? 
+                (config.proxy['proxy-type'].toLowerCase() === 'http' ? proxy : null) : null;
+            
+            const result = await sendView(aweme_id, did, iid, cdid, openudid, proxyConfig);
+            
+            reqs++;
+            if (result.success) {
+                success++;
             } else {
-                this.log("⚠️ Không thấy option parent/guardian, bỏ qua");
+                fails++;
             }
-            return true;
-        }
-
-        async fillForm(myUser, targetUser, email, desc) {
-            this.log("📍 Bước 4: Điền form...");
-
-            let input = document.querySelector('input#username');
-            if (input) {
-                input.value = myUser;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                this.log("✅ Đã điền Your Username");
-            }
-
-            await this.wait(500);
-
-            input = document.querySelector('input#underageUsername');
-            if (input) {
-                input.value = targetUser;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                this.log("✅ Đã điền Target Username");
-            }
-
-            await this.wait(500);
-
-            input = document.querySelector('input#email');
-            if (input) {
-                input.value = email;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                this.log("✅ Đã điền Email");
-            }
-
-            await this.wait(500);
-
-            const textarea = document.querySelector('textarea#feedback');
-            if (textarea) {
-                textarea.value = desc;
-                textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                this.log("✅ Đã điền Description");
-            }
-
-            await this.wait(1000);
-        }
-
-        async clickUploadButton() {
-            this.log("📍 Bước 5: Click nút Upload...");
-
-            // Tìm nút upload theo đúng cấu trúc bạn đưa
-            let uploadBtn = document.querySelector('label[for="input-file-screenshots"] .choose-file');
-            if (!uploadBtn) uploadBtn = document.querySelector('label[for="input-file-screenshots"]');
-            if (!uploadBtn) uploadBtn = document.querySelector('.choose-file-button');
-            if (!uploadBtn) uploadBtn = document.querySelector('span[aria-label="Upload"]');
-
-            if (!uploadBtn) {
-                this.log("⚠️ Không tìm thấy nút upload", "error");
-                return false;
-            }
-
-            this.log("✅ Tìm thấy nút upload, đang click...");
-            await this.clickElement(uploadBtn);
-            await this.wait(1000);
-
-            // Mở dialog chọn file
-            const fileInput = document.querySelector('#input-file-screenshots');
-            if (fileInput) {
-                fileInput.click();
-                this.log("✅ Đã mở hộp thoại chọn file");
-            }
-
-            return true;
-        }
-
-        async checkAgreement(index) {
-            this.log(`📍 Check agreement ${index}...`);
-
-            // Tìm theo cấu trúc HTML bạn cung cấp
-            let input = document.querySelector(`#${index}agreement`);
-
-            if (!input) {
-                this.log(`❌ Không tìm thấy agreement ${index}`, 'error');
-                return false;
-            }
-
-            // Nếu đã check thì bỏ qua
-            if (input.checked) {
-                this.log(`✅ Agreement ${index} đã được check trước đó`);
-                return true;
-            }
-
-            // Đợi DOM ổn định
-            await this.wait(800);
-
-            // Tìm label tương ứng và click
-            const label = document.querySelector(`label[for="${index}agreement"]`);
-
-            if (label) {
-                this.log(`🖱️ Đang click vào label của agreement ${index}...`);
-                await this.clickElement(label);
-                await this.wait(500);
-            } else {
-                this.log(`⚠️ Không tìm thấy label cho agreement ${index}, thử click trực tiếp vào input`, 'error');
-                await this.clickElement(input);
-                await this.wait(500);
-            }
-
-            // Kiểm tra lại sau khi click
-            if (!input.checked) {
-                this.log(`⚠️ Agreement ${index} vẫn chưa được check, ép buộc bằng JavaScript`, 'error');
-                // Force check bằng JavaScript
-                const nativeSetter = Object.getOwnPropertyDescriptor(
-                    HTMLInputElement.prototype,
-                    'checked'
-                ).set;
-
-                nativeSetter.call(input, true);
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                await this.wait(300);
-            }
-
-            // Final check
-            if (input.checked) {
-                this.log(`✅ Đã check thành công agreement ${index}`, 'success');
-                return true;
-            } else {
-                this.log(`❌ Không thể check agreement ${index}`, 'error');
-                return false;
-            }
-        }
-
-        async submitReport() {
-            this.log("📍 Bước 8: Submit report...");
-
-            const submitBtn = document.querySelector('button[aria-label="Submit"]');
-            if (!submitBtn) {
-                throw new Error("Không tìm thấy nút Submit!");
-            }
-
-            await this.clickElement(submitBtn);
-            this.log("✅ Đã click Submit");
-            await this.wait(3000);
-
-            const okBtn = document.querySelector('.success-tip-btn-submitted');
-            if (okBtn) {
-                await this.clickElement(okBtn);
-                this.log("✅ Đã click OK");
-            }
-        }
-
-        async runOnce(data) {
-            try {
-                await this.clickTopic();
-                await this.selectOption5();
-                await this.selectOption2_0();
-                await this.fillForm(data.myUser, data.targetUser, data.email, data.desc);
-                await this.clickUploadButton();    // Click nút upload
-
-                // Check cả 2 agreement
-                await this.checkAgreement(0);
-                await this.wait(300);
-                await this.checkAgreement(1);
-                await this.wait(500);
-
-                await this.submitReport();
-                return true;
-            } catch (error) {
-                this.log(`❌ Lỗi: ${error.message}`, 'error');
-                return false;
-            }
-        }
-
-        async start() {
-            if (this.running) {
-                this.log("Bot đang chạy!", "error");
-                return;
-            }
-
-            const loop = parseInt(document.getElementById('tt-loop').value);
-            const myUser = document.getElementById('tt-myuser').value.trim();
-            const targetUser = document.getElementById('tt-target').value.trim();
-            const email = document.getElementById('tt-email').value.trim();
-            const desc = document.getElementById('tt-desc').value;
-            const delay = parseInt(document.getElementById('tt-delay').value);
-
-            if (!myUser || !targetUser || !email) {
-                this.log("❌ Vui lòng điền đủ: Your Username, Target Username, Email", "error");
-                return;
-            }
-
-            this.running = true;
-            document.getElementById('tt-start').disabled = true;
-            document.getElementById('tt-stop').disabled = false;
-
-            this.saveSettings();
-            this.log(`🚀 Bắt đầu ${loop} lượt report`, "success");
-
-            for (let i = 1; i <= loop && this.running; i++) {
-                this.log(`\n========== LƯỢT ${i}/${loop} ==========`);
-                document.getElementById('tt-status').innerHTML = `⏳ Lượt ${i}/${loop}`;
-
-                const data = { myUser, targetUser, email, desc };
-                const success = await this.runOnce(data);
-
-                const progress = (i / loop) * 100;
-                document.getElementById('tt-progress').style.width = `${progress}%`;
-                document.getElementById('tt-status').innerHTML = `✅ ${i}/${loop}`;
-
-                if (success && i < loop && this.running) {
-                    this.log(`⏳ Đợi ${delay} giây rồi reload...`);
-                    await this.wait(delay * 1000);
-                    this.log("🔄 Reload trang...");
-                    location.reload();
-                    await this.wait(5000);
-                } else if (!success) {
-                    this.log("❌ Dừng do lỗi", "error");
-                    break;
-                }
-            }
-
-            if (this.running) {
-                this.log("🎉 HOÀN THÀNH TẤT CẢ LƯỢT!", "success");
-                GM_notification("TikTok Report", "Hoàn thành tất cả lượt report!");
-            }
-
-            this.stop();
-        }
-
-        stop() {
-            this.running = false;
-            document.getElementById('tt-start').disabled = false;
-            document.getElementById('tt-stop').disabled = true;
-            document.getElementById('tt-status').innerHTML = '✅ Stopped';
-            this.log("🛑 Đã dừng bot");
-        }
-
-        createPanel() {
-            const panel = document.createElement('div');
-            panel.id = 'tt-panel';
-            panel.innerHTML = `
-                <div style="position: fixed; top: 20px; right: 20px; width: 420px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 100000; font-family: Arial, sans-serif;">
-                    <div style="background: #fe2c55; color: white; padding: 12px; border-radius: 12px 12px 0 0; cursor: move; display: flex; justify-content: space-between;">
-                        <span style="font-weight: bold;">🎯 TikTok Report Bot</span>
-                        <div>
-                            <span id="tt-minimize" style="cursor: pointer; margin-right: 10px;">−</span>
-                            <span id="tt-close" style="cursor: pointer;">✕</span>
-                        </div>
-                    </div>
-                    <div id="tt-main" style="padding: 15px;">
-                        <div style="margin-bottom: 12px;">
-                            <label style="font-weight: bold;">Số lần chạy:</label>
-                            <input type="number" id="tt-loop" min="1" max="20" value="1" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px;">
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label style="font-weight: bold;">Your Username:</label>
-                            <input type="text" id="tt-myuser" placeholder="@username" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px;">
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label style="font-weight: bold;">Target Username:</label>
-                            <input type="text" id="tt-target" placeholder="@target" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px;">
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label style="font-weight: bold;">Email:</label>
-                            <input type="email" id="tt-email" placeholder="you@example.com" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px;">
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label style="font-weight: bold;">Description:</label>
-                            <textarea id="tt-desc" rows="3" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px;">Underage user report. This user is under 13 years old.</textarea>
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label style="font-weight: bold;">Delay (giây):</label>
-                            <input type="number" id="tt-delay" min="3" max="10" value="5" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px;">
-                        </div>
-                        <button id="tt-start" style="width: 100%; padding: 10px; background: #fe2c55; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 8px;">▶ BẮT ĐẦU</button>
-                        <button id="tt-stop" style="width: 100%; padding: 10px; background: #666; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;" disabled>⏹ DỪNG</button>
-                        <div id="tt-progress" style="height: 3px; background: #fe2c55; width: 0%; margin-top: 10px; border-radius: 3px;"></div>
-                        <div id="tt-status" style="text-align: center; margin-top: 8px; font-size: 12px; font-weight: bold;">✅ Ready</div>
-                        <div id="tt-log" style="background: #f5f5f5; height: 200px; overflow-y: auto; margin-top: 10px; padding: 8px; font-size: 11px; border-radius: 6px;"></div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(panel);
-
-            document.getElementById('tt-start').onclick = () => this.start();
-            document.getElementById('tt-stop').onclick = () => this.stop();
-            document.getElementById('tt-close').onclick = () => panel.remove();
-            document.getElementById('tt-minimize').onclick = () => {
-                const main = document.getElementById('tt-main');
-                main.style.display = main.style.display === 'none' ? 'block' : 'none';
-            };
-
-            this.makeDraggable(panel);
-        }
-
-        makeDraggable(panel) {
-            const header = panel.querySelector('div:first-child');
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-            header.onmousedown = (e) => {
-                if (e.target === header || e.target.id === 'tt-minimize' || e.target.id === 'tt-close') return;
-                e.preventDefault();
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = () => {
-                    document.onmouseup = null;
-                    document.onmousemove = null;
-                };
-                document.onmousemove = (e) => {
-                    e.preventDefault();
-                    pos1 = pos3 - e.clientX;
-                    pos2 = pos4 - e.clientY;
-                    pos3 = e.clientX;
-                    pos4 = e.clientY;
-                    panel.style.top = (panel.offsetTop - pos2) + 'px';
-                    panel.style.left = (panel.offsetLeft - pos1) + 'px';
-                    panel.style.right = 'auto';
-                };
-            };
-        }
-
-        saveSettings() {
-            const settings = {
-                loop: document.getElementById('tt-loop').value,
-                myUser: document.getElementById('tt-myuser').value,
-                targetUser: document.getElementById('tt-target').value,
-                email: document.getElementById('tt-email').value,
-                desc: document.getElementById('tt-desc').value,
-                delay: document.getElementById('tt-delay').value
-            };
-            GM_setValue('tt_settings', JSON.stringify(settings));
-        }
-
-        loadSettings() {
-            const saved = GM_getValue('tt_settings');
-            if (saved) {
-                try {
-                    const s = JSON.parse(saved);
-                    document.getElementById('tt-loop').value = s.loop || '1';
-                    document.getElementById('tt-myuser').value = s.myUser || '';
-                    document.getElementById('tt-target').value = s.targetUser || '';
-                    document.getElementById('tt-email').value = s.email || '';
-                    document.getElementById('tt-desc').value = s.desc || 'Underage user report.';
-                    document.getElementById('tt-delay').value = s.delay || '5';
-                } catch (e) { }
-            }
+            
+            // Điều chỉnh tốc độ
+            await new Promise(resolve => setTimeout(resolve, 10));
+        } catch (error) {
+            fails++;
+            await new Promise(resolve => setTimeout(resolve, 10));
         }
     }
-})();
+}
+
+// Export các class và function để sử dụng
+module.exports = {
+    Gorgon,
+    sendView,
+    extractVideoId,
+    fetchProxies
+};
+
+// Chạy chương trình nếu file được chạy trực tiếp
+if (require.main === module) {
+    main().catch(console.error);
+}

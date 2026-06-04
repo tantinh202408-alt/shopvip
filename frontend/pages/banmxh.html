@@ -86,3 +86,196 @@
             </div>
 
             <div class="section-card section-spaced">
+                <div class="mxh-section-head">
+                    <div class="mxh-section-icon" style="background:rgba(14,165,164,0.12);color:#0ea5e9">
+                        <i class="fas fa-file-lines"></i>
+                    </div>
+                    <div>
+                        <h3 class="section-title">Chi tiết sản phẩm</h3>
+                        <p class="section-subtitle">Mô tả chi tiết và nhập giá bán cho tài khoản</p>
+                    </div>
+                </div>
+                <div class="form-grid form-grid-2">
+                    <div class="form-group">
+                        <label>Tiêu đề bài viết <span class="req">*</span></label>
+                        <input type="text" id="mxh-title" placeholder="Ví dụ: Tài khoản Facebook cổ từ 2012, 1000 bạn bè, có tích ẩn..." required>
+                        <small>Tiêu đề ngắn gọn mô tả nổi bật về tài khoản.</small>
+                    </div>
+                    <div class="form-grid form-grid-2" style="padding:0">
+                        <div class="form-group">
+                            <label>Giá tiền (VND) <span class="req">*</span></label>
+                            <input type="number" id="mxh-price" placeholder="Tối thiểu 1.000đ" min="1000" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Số lượng đăng bán <span class="req">*</span></label>
+                            <input type="number" id="mxh-quantity" value="1" min="1" required>
+                        </div>
+                    </div>
+                    <div class="form-group full">
+                        <label>Mô tả tài khoản <span class="req">*</span></label>
+                        <textarea id="mxh-description" rows="5" placeholder="Mô tả các thông số cụ thể: Năm tạo, số follower/bạn bè, tính năng đã mở, quốc gia, chính sách bảo hành..." required></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload section -->
+            <div class="section-card section-spaced">
+                <div class="mxh-section-head">
+                    <div class="mxh-section-icon" style="background:rgba(34,197,94,0.12);color:#22c55e">
+                        <i class="fas fa-images"></i>
+                    </div>
+                    <div>
+                        <h3 class="section-title">Hình ảnh minh chứng</h3>
+                        <p class="section-subtitle">Tải lên ít nhất 1 ảnh chụp màn hình thông tin tài khoản</p>
+                    </div>
+                </div>
+                <div class="mxh-upload-area" id="mxh-upload-drop">
+                    <div class="mxh-upload-drop">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                        <p>Kéo thả ảnh vào đây hoặc</p>
+                        <input type="file" id="mxh-image-input" class="is-hidden" multiple accept="image/*">
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('mxh-image-input').click()">
+                            Chọn ảnh từ thiết bị
+                        </button>
+                    </div>
+                </div>
+                <div class="mxh-image-previews" id="mxh-image-previews">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="mxh-step-nav">
+                <div></div>
+                <button type="button" id="mxh-step1-next" class="btn btn-primary">
+                    Tiếp tục <i class="fas fa-arrow-right" style="margin-left:6px"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Account Info (Credentials) -->
+        <div class="mxh-form-step" id="mxh-step-2" style="display:none">
+            <div class="mxh-credentials-warning">
+                <i class="fas fa-triangle-exclamation"></i>
+                <div>
+                    Thông tin tài khoản dưới đây sẽ được mã hóa và chỉ bàn giao cho người mua sau khi giao dịch hoàn tất. Vui lòng nhập chính xác.
+                </div>
+            </div>
+            
+            <div class="section-card section-spaced">
+                <div class="mxh-section-head">
+                    <div class="mxh-section-icon" style="background:rgba(239,68,68,0.12);color:#ef4444">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <div>
+                        <h3 class="section-title">Thông tin đăng nhập tài khoản</h3>
+                        <p class="section-subtitle">Nhập chính xác để hệ thống kiểm tra và bàn giao</p>
+                    </div>
+                </div>
+                <div class="form-grid form-grid-2">
+                    <div class="form-group">
+                        <label>Tài khoản / Email / SĐT đăng nhập <span class="req">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="mxh-account-email" placeholder="Email hoặc số điện thoại đăng nhập" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Mật khẩu tài khoản <span class="req">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="mxh-account-password" placeholder="Mật khẩu tài khoản" required>
+                            <button type="button" class="toggle-pw-btn" id="mxh-toggle-pw">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card section-spaced">
+                <div class="mxh-section-head">
+                    <div class="mxh-section-icon" style="background:rgba(14,165,164,0.12);color:#0ea5e9">
+                        <i class="fas fa-envelope-open-text"></i>
+                    </div>
+                    <div>
+                        <h3 class="section-title">Thông tin Email khôi phục (Tùy chọn)</h3>
+                        <p class="section-subtitle">Nếu có email khôi phục đi kèm tài khoản</p>
+                    </div>
+                </div>
+                <div class="form-grid form-grid-2">
+                    <div class="form-group">
+                        <label>Email khôi phục</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="mxh-backup-email" placeholder="Ví dụ: backup@gmail.com">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Mật khẩu Email khôi phục</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-key"></i>
+                            <input type="password" id="mxh-backup-email-pw" placeholder="Mật khẩu email khôi phục (nếu có)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card section-spaced">
+                <div class="mxh-section-head">
+                    <div class="mxh-section-icon" style="background:rgba(99,102,241,0.12);color:#6366f1">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <div>
+                        <h3 class="section-title">Thông tin Cookie / Mã khôi phục 2FA</h3>
+                        <p class="section-subtitle">Giúp người mua dễ dàng đăng nhập tránh checkpoint</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Cookie tài khoản hoặc Mã bảo mật 2FA (Tùy chọn)</label>
+                    <textarea id="mxh-cookie" rows="3" placeholder="Ví dụ mã 2FA: JBSWY3DPEHPK3PXP... hoặc dán chuỗi Cookie tại đây"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Thông tin bổ sung / Hướng dẫn đăng nhập (Tùy chọn)</label>
+                    <textarea id="mxh-extra-info" rows="2" placeholder="Ghi chú thêm về mã backup, mã PIN hoặc các lưu ý đặc biệt cho người mua..."></textarea>
+                </div>
+            </div>
+
+            <div class="mxh-step-nav">
+                <button type="button" id="mxh-step2-back" class="btn btn-outline">
+                    <i class="fas fa-arrow-left" style="margin-right:6px"></i> Quay lại
+                </button>
+                <button type="button" id="mxh-step2-next" class="btn btn-primary">
+                    Tiếp tục <i class="fas fa-arrow-right" style="margin-left:6px"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 3: Review & Submit -->
+        <div class="mxh-form-step" id="mxh-step-3" style="display:none">
+            <div class="section-card section-spaced">
+                <div class="mxh-section-head">
+                    <div class="mxh-section-icon" style="background:rgba(34,197,94,0.12);color:#22c55e">
+                        <i class="fas fa-square-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="section-title">Kiểm tra thông tin bài đăng</h3>
+                        <p class="section-subtitle">Vui lòng rà soát lại thông tin trước khi nhấn đăng bán</p>
+                    </div>
+                </div>
+                
+                <div id="mxh-review-content">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="mxh-step-nav">
+                <button type="button" id="mxh-step3-back" class="btn btn-outline">
+                    <i class="fas fa-arrow-left" style="margin-right:6px"></i> Quay lại
+                </button>
+                <button type="submit" id="mxh-submit" class="btn btn-buy">
+                    <i class="fas fa-paper-plane" style="margin-right:6px"></i> Đăng bán ngay
+                </button>
+            </div>
+        </div>
+    </form>
+</div>

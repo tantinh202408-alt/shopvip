@@ -12,7 +12,6 @@ window.pageInit = async function() {
             const res = await api.post('/mission/generate-link', {});
             const data = res.data || {};
             const shortLink = String(data.shortLink || data.link || '').trim();
-            const directLink = String(data.directLink || '').trim();
 
             linkEl.innerHTML = `
                 <div class="mission-link-card">
@@ -28,12 +27,6 @@ window.pageInit = async function() {
                             <a class="btn-primary" href="${escapeHtml(shortLink || '#')}" target="_blank" rel="noopener noreferrer">Mở link</a>
                         </div>
                     </div>
-                    ${directLink ? `
-                        <div class="mission-link-field is-secondary">
-                            <label>Link đích</label>
-                            <div class="mission-link-direct">${escapeHtml(directLink)}</div>
-                        </div>
-                    ` : ''}
                     ${data.shortLinkError ? `<div class="mission-link-warning">${escapeHtml(data.shortLinkError)}</div>` : ''}
                 </div>
             `;

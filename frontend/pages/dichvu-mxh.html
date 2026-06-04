@@ -1,0 +1,63 @@
+<div class="container mxh-service-page">
+    <div class="mxh-service-hero section-card">
+        <div class="mxh-service-hero-copy">
+            <div class="mxh-service-eyebrow">Dịch vụ MXH</div>
+            <h1 class="page-title">Đặt dịch vụ Facebook, TikTok, Instagram</h1>
+            <p class="section-subtitle">Chọn nền tảng, chọn gói dịch vụ, nhập link và số lượng. Hệ thống tự trừ tiền và tạo đơn chờ admin xử lý.</p>
+        </div>
+        <div class="mxh-service-hero-badges">
+            <span class="badge badge-info"><i class="fas fa-shield-halved" style="margin-right:4px"></i>An toàn</span>
+            <span class="badge badge-success"><i class="fas fa-bolt" style="margin-right:4px"></i>Realtime</span>
+        </div>
+    </div>
+
+    <div class="mxh-service-summary" id="mxh-service-summary"></div>
+
+    <div class="mxh-service-layout">
+        <section class="section-card mxh-service-main">
+            <div class="mxh-service-toolbar">
+                <div>
+                    <div class="section-title">Chọn nền tảng</div>
+                    <p class="section-subtitle">Chỉ hỗ trợ 3 nền tảng chính.</p>
+                </div>
+                <div id="mxh-service-platform-tabs" class="mxh-service-platform-tabs"></div>
+            </div>
+
+            <div class="mxh-service-filter">
+                <div class="mxh-category-chips" id="mxh-service-category-chips"></div>
+                <div class="mxh-service-search-wrap">
+                    <input id="mxh-service-search" type="text" class="mxh-service-search" placeholder="Tìm gói dịch vụ...">
+                </div>
+            </div>
+
+            <div id="mxh-service-grid" class="mxh-service-grid"></div>
+        </section>
+
+        <aside class="section-card mxh-service-panel">
+            <div class="mxh-service-panel-head">
+                <div>
+                    <div class="section-title">Tạo đơn</div>
+                    <p class="section-subtitle">Chọn một gói ở bên trái để bắt đầu.</p>
+                </div>
+                <span class="badge badge-info" id="mxh-service-selected-badge">Chưa chọn</span>
+            </div>
+            <div id="mxh-service-order-panel" class="mxh-service-order-panel">
+                <div class="chart-empty-state">
+                    <i class="fas fa-bullhorn"></i>
+                    <p>Chọn một gói dịch vụ để đặt đơn</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <section class="section-card mxh-service-orders-card">
+        <div class="section-header">
+            <div>
+                <h3 class="section-title">Đơn của tôi</h3>
+                <p class="section-subtitle">Xem trạng thái và ghi chú xử lý gần nhất.</p>
+            </div>
+            <button id="mxh-service-refresh-orders" class="btn-outline"><i class="fas fa-rotate" style="margin-right:6px"></i>Làm mới</button>
+        </div>
+        <div id="mxh-service-orders" class="mxh-service-orders"></div>
+    </section>
+</div>

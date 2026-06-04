@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { encrypt, decrypt } = require('../utils/crypto');
+const { ensureServiceDefaults } = require('../services/mxhService');
 
 function parseJsonArray(value, fallback = []) {
     if (Array.isArray(value)) {
@@ -30,6 +31,11 @@ function parsePositiveInt(value, fallback = 0) {
 
 function normalizeText(value, fallback = '') {
     return String(value ?? fallback).trim();
+}
+
+function normalizeCategoryKind(value = 'account') {
+    const kind = normalizeText(value, 'account').toLowerCase();
+    return kind === 'service' ? 'service' : 'account';
 }
 
 function parseCategoryFilter(query = {}) {
@@ -70,7 +76,7 @@ function toAccountPayload(row = {}) {
 }
 
 function buildAccountListQuery(query = {}) {
-    const filters = ['a.status != ?'];
+    const filters = ['a.status != ?', "c.kind = 'account'"];
     const params = ['hidden'];
 
     const categoryFilter = parseCategoryFilter(query);
@@ -118,23 +124,30 @@ const DEFAULT_MXH_CATEGORIES = [
     { name: 'Khác', slug: 'other-account', icon: 'fas fa-ellipsis', display_order: 1, color: '#64748b', platform: 'other' }
 ];
 
-async function ensureDefaultMxhCategories() {
+async function ensureDefaultMxhCategories(kind = 'account') {
+    const normalizedKind = normalizeCategoryKind(kind);
+    if (normalizedKind === 'service') {
+        await ensureServiceDefaults();
+        return;
+    }
+
     for (const cat of DEFAULT_MXH_CATEGORIES) {
         await db.execute(
             `
                 INSERT OR IGNORE INTO mxh_categories (
-                    name, slug, icon, display_order, color, platform, is_active
+                    name, slug, icon, display_order, color, platform, kind, is_active, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, 1)
+                VALUES (?, ?, ?, ?, ?, ?, 'account', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             `,
             [cat.name, cat.slug, cat.icon, cat.display_order, cat.color, cat.platform]
         );
     }
 }
 
-async function resolveMxhCategoryId(rawValue) {
+async function resolveMxhCategoryId(rawValue, kind = 'account') {
     const text = normalizeText(rawValue);
     if (!text) return 0;
+    const normalizedKind = normalizeCategoryKind(kind);
 
     const numeric = Number.parseInt(text, 10);
     if (Number.isFinite(numeric) && String(numeric) === text) {
@@ -142,8 +155,8 @@ async function resolveMxhCategoryId(rawValue) {
     }
 
     const [rows] = await db.execute(
-        'SELECT id FROM mxh_categories WHERE slug = ? OR platform = ? LIMIT 1',
-        [text, text]
+        'SELECT id FROM mxh_categories WHERE kind = ? AND (slug = ? OR platform = ?) LIMIT 1',
+        [normalizedKind, text, text]
     );
     return Number(rows[0]?.id || 0);
 }
@@ -170,21 +183,25 @@ exports.getStats = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getStats:', error);
-        res.status(500).json({ success: false, message: 'Loi server khi lay thong ke MXH' });
+        res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy thống kê MXH' });
     }
 };
 
 // Get categories
 exports.getCategories = async (req, res) => {
     try {
-        await ensureDefaultMxhCategories();
+        const kind = normalizeCategoryKind(req.query?.kind || 'account');
+        await ensureDefaultMxhCategories(kind);
+        const includeInactive = req.user?.role === 'admin';
+        const activeClause = includeInactive ? '' : ' AND is_active = 1';
         const [rows] = await db.execute(
-            'SELECT * FROM mxh_categories WHERE is_active = 1 ORDER BY display_order ASC, id ASC'
+            `SELECT * FROM mxh_categories WHERE kind = ?${activeClause} ORDER BY display_order ASC, id ASC`,
+            [kind]
         );
         res.json({ success: true, data: rows });
     } catch (error) {
         console.error('Error in getCategories:', error);
-        res.status(500).json({ success: false, message: 'Loi server khi lay danh muc MXH' });
+        res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh mục MXH' });
     }
 };
 
@@ -207,7 +224,7 @@ exports.createAccount = async (req, res) => {
         } = req.body || {};
 
         const sellerId = req.user.id;
-        const categoryId = await resolveMxhCategoryId(mxh_category_id);
+        const categoryId = await resolveMxhCategoryId(mxh_category_id, 'account');
         const normalizedTitle = normalizeText(title);
         const normalizedDescription = normalizeText(description);
         const normalizedEmail = normalizeText(account_email);
@@ -254,14 +271,14 @@ exports.createAccount = async (req, res) => {
         }
 
         const [categories] = await db.execute(
-            'SELECT id FROM mxh_categories WHERE id = ? AND is_active = 1',
+            "SELECT id FROM mxh_categories WHERE id = ? AND kind = 'account' AND is_active = 1",
             [categoryId]
         );
 
         if (!categories.length) {
             return res.status(400).json({
                 success: false,
-                message: 'Danh muc MXH khong ton tai hoac da bi an'
+                message: 'Danh mục MXH không tồn tại hoặc đã bị ẩn'
             });
         }
 
@@ -294,10 +311,10 @@ exports.createAccount = async (req, res) => {
             ]
         );
 
-        res.json({ success: true, message: 'Da dang ban tai khoan thanh cong' });
+        res.json({ success: true, message: 'Đã đăng bán tài khoản thành công' });
     } catch (error) {
         console.error('Error in createAccount:', error);
-        res.status(500).json({ success: false, message: 'Loi server khi tao tai khoan' });
+        res.status(500).json({ success: false, message: 'Lỗi máy chủ khi tạo tài khoản' });
     }
 };
 
@@ -316,7 +333,7 @@ exports.getAccounts = async (req, res) => {
             `
                 SELECT COUNT(*) AS total
                 FROM mxh_accounts a
-                JOIN mxh_categories c ON a.category_id = c.id
+                JOIN mxh_categories c ON a.category_id = c.id AND c.kind = 'account'
                 ${whereSql}
             `,
             params
@@ -353,7 +370,7 @@ exports.getAccounts = async (req, res) => {
                     u.avatar AS seller_avatar,
                     CASE WHEN a.status = 'active' THEN 1 ELSE 0 END AS available_count
                 FROM mxh_accounts a
-                JOIN mxh_categories c ON a.category_id = c.id
+                JOIN mxh_categories c ON a.category_id = c.id AND c.kind = 'account'
                 LEFT JOIN users u ON a.seller_id = u.id
                 ${whereSql}
                 ORDER BY ${orderSql}
@@ -381,7 +398,7 @@ exports.getAccounts = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getAccounts:', error);
-        res.status(500).json({ success: false, message: 'Loi server khi lay danh sach' });
+        res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh sách' });
     }
 };
 
@@ -401,7 +418,7 @@ exports.getAccountDetail = async (req, res) => {
                     a.images,
                     a.status,
                     a.created_at,
-                    a.purchased_at,
+                a.purchased_at,
                     a.buyer_id,
                     c.name AS category_name,
                     c.icon AS category_icon,
@@ -412,7 +429,7 @@ exports.getAccountDetail = async (req, res) => {
                     u.avatar AS seller_avatar,
                     CASE WHEN a.status = 'active' THEN 1 ELSE 0 END AS available_count
                 FROM mxh_accounts a
-                JOIN mxh_categories c ON a.category_id = c.id
+                JOIN mxh_categories c ON a.category_id = c.id AND c.kind = 'account'
                 LEFT JOIN users u ON a.seller_id = u.id
                 WHERE a.id = ? AND a.status != 'hidden'
             `,
@@ -420,7 +437,7 @@ exports.getAccountDetail = async (req, res) => {
         );
 
         if (rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'Khong tim thay tai khoan' });
+            return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản' });
         }
 
         const acc = toAccountPayload(rows[0]);
@@ -437,6 +454,7 @@ exports.getAccountDetail = async (req, res) => {
         acc.seller_total_products = Number(sellerStats[0]?.total_mxh || 0);
 
         if (req.user?.id) {
+            // First try to get credentials from mxh_accounts (if account still exists)
             const [buyerRows] = await db.execute(
                 'SELECT buyer_id, credentials FROM mxh_accounts WHERE id = ?',
                 [id]
@@ -455,13 +473,34 @@ exports.getAccountDetail = async (req, res) => {
                         extra_info: ''
                     };
                 }
+            } else {
+                // If not found in mxh_accounts, try to get from purchase history
+                const [purchaseHistoryRows] = await db.execute(
+                    'SELECT buyer_id, credentials FROM mxh_purchase_history WHERE account_id = ? ORDER BY purchased_at DESC LIMIT 1',
+                    [id]
+                );
+
+                if (purchaseHistoryRows.length > 0 && Number(purchaseHistoryRows[0].buyer_id) === Number(req.user.id)) {
+                    try {
+                        acc.credentials = JSON.parse(decrypt(purchaseHistoryRows[0].credentials));
+                    } catch (e) {
+                        acc.credentials = {
+                            account_email: '',
+                            account_password: '',
+                            backup_email: '',
+                            backup_email_password: '',
+                            cookie: '',
+                            extra_info: ''
+                        };
+                    }
+                }
             }
         }
 
         res.json({ success: true, data: acc });
     } catch (error) {
         console.error('Error in getAccountDetail:', error);
-        res.status(500).json({ success: false, message: 'Loi server khi lay chi tiet' });
+        res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy chi tiết' });
     }
 };
 
@@ -481,7 +520,7 @@ exports.purchaseAccount = async (req, res) => {
 
         if (accounts.length === 0) {
             await connection.rollback();
-            return res.status(404).json({ success: false, message: 'Tai khoan khong ton tai' });
+            return res.status(404).json({ success: false, message: 'Tài khoản không tồn tại' });
         }
 
         const acc = accounts[0];
@@ -489,7 +528,7 @@ exports.purchaseAccount = async (req, res) => {
             await connection.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'Tai khoan nay da bi mua hoac khong con ban'
+                message: 'Tài khoản này đã bị mua hoặc không còn bán'
             });
         }
 
@@ -497,7 +536,7 @@ exports.purchaseAccount = async (req, res) => {
             await connection.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'Ban khong the tu mua tai khoan cua minh'
+                message: 'Bạn không thể tự mua tài khoản của mình'
             });
         }
 
@@ -509,14 +548,14 @@ exports.purchaseAccount = async (req, res) => {
 
         if (!buyer) {
             await connection.rollback();
-            return res.status(404).json({ success: false, message: 'Khong tim thay tai khoan nguoi mua' });
+            return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản người mua' });
         }
 
         if (Number(buyer.balance || 0) < Number(acc.price || 0)) {
             await connection.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'So du khong du. Vui long nap them tien.'
+                message: 'Số dư không đủ. Vui lòng nạp thêm tiền.'
             });
         }
 
@@ -528,7 +567,7 @@ exports.purchaseAccount = async (req, res) => {
 
         if (!seller) {
             await connection.rollback();
-            return res.status(400).json({ success: false, message: 'Khong tim thay tai khoan nguoi ban' });
+            return res.status(400).json({ success: false, message: 'Không tìm thấy tài khoản người bán' });
         }
 
         const buyerBefore = Number(buyer.balance || 0);
@@ -575,6 +614,29 @@ exports.purchaseAccount = async (req, res) => {
             [buyerId, id]
         );
 
+        // Store purchase snapshot in history
+        await connection.execute(
+            `
+                INSERT INTO mxh_purchase_history (
+                    account_id, buyer_id, seller_id, category_id, title, price, 
+                    description, images, credentials, purchased_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            `,
+            [
+                id,
+                buyerId,
+                acc.seller_id,
+                acc.category_id,
+                acc.title,
+                acc.price,
+                acc.description || null,
+                acc.images || null,
+                acc.credentials,
+                new Date().toISOString()
+            ]
+        );
+
         await connection.commit();
 
         let credentials;
@@ -611,18 +673,24 @@ exports.purchaseAccount = async (req, res) => {
 // Admin: Create category
 exports.adminCreateCategory = async (req, res) => {
     try {
-        const { name, slug, icon, sort_order, color, platform } = req.body || {};
+        const { name, slug, icon, sort_order, color, platform, kind, description } = req.body || {};
         const normalizedName = normalizeText(name);
         const normalizedSlug = normalizeText(slug);
+        const normalizedKind = normalizeCategoryKind(kind);
+        const normalizedPlatform = normalizeText(platform) || normalizedSlug;
 
         if (!normalizedName || !normalizedSlug) {
             return res.status(400).json({ success: false, message: 'Thieu ten hoac slug' });
         }
 
+        if (normalizedKind === 'service' && !['facebook', 'tiktok', 'instagram'].includes(normalizedPlatform)) {
+            return res.status(400).json({ success: false, message: 'Danh mục dịch vụ chỉ hỗ trợ Facebook, TikTok và Instagram' });
+        }
+
         await db.execute(
             `
-                INSERT INTO mxh_categories (name, slug, icon, display_order, color, platform)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO mxh_categories (name, slug, icon, display_order, color, platform, kind, description, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             `,
             [
                 normalizedName,
@@ -630,7 +698,9 @@ exports.adminCreateCategory = async (req, res) => {
                 normalizeText(icon) || 'fas fa-share-nodes',
                 parsePositiveInt(sort_order, 0),
                 normalizeText(color) || '#6366f1',
-                normalizeText(platform) || normalizedSlug
+                normalizedPlatform,
+                normalizedKind,
+                normalizeText(description) || null
             ]
         );
 
@@ -645,12 +715,18 @@ exports.adminCreateCategory = async (req, res) => {
 exports.adminUpdateCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, slug, icon, sort_order, color, platform } = req.body || {};
+        const { name, slug, icon, sort_order, color, platform, kind, description } = req.body || {};
+        const normalizedKind = normalizeCategoryKind(kind);
+        const normalizedPlatform = normalizeText(platform) || normalizeText(slug);
+
+        if (normalizedKind === 'service' && !['facebook', 'tiktok', 'instagram'].includes(normalizedPlatform)) {
+            return res.status(400).json({ success: false, message: 'Danh mục dịch vụ chỉ hỗ trợ Facebook, TikTok và Instagram' });
+        }
 
         await db.execute(
             `
                 UPDATE mxh_categories
-                SET name = ?, slug = ?, icon = ?, display_order = ?, color = ?, platform = ?
+                SET name = ?, slug = ?, icon = ?, display_order = ?, color = ?, platform = ?, kind = ?, description = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `,
             [
@@ -659,7 +735,9 @@ exports.adminUpdateCategory = async (req, res) => {
                 normalizeText(icon) || 'fas fa-share-nodes',
                 parsePositiveInt(sort_order, 0),
                 normalizeText(color) || '#6366f1',
-                normalizeText(platform) || normalizeText(slug),
+                normalizedPlatform,
+                normalizedKind,
+                normalizeText(description) || null,
                 id
             ]
         );
@@ -675,16 +753,31 @@ exports.adminUpdateCategory = async (req, res) => {
 exports.adminDeleteCategory = async (req, res) => {
     try {
         const { id } = req.params;
+        const [categoryRows] = await db.execute('SELECT kind FROM mxh_categories WHERE id = ? LIMIT 1', [id]);
+        const categoryKind = normalizeCategoryKind(categoryRows[0]?.kind || 'account');
 
-        const [accounts] = await db.execute(
-            'SELECT id FROM mxh_accounts WHERE category_id = ? LIMIT 1',
-            [id]
-        );
-        if (accounts.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Khong the xoa danh muc dang co tai khoan dang ban'
-            });
+        if (categoryKind === 'service') {
+            const [packages] = await db.execute(
+                'SELECT id FROM mxh_service_packages WHERE category_id = ? LIMIT 1',
+                [id]
+            );
+            if (packages.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Không thể xóa danh mục đang có gói dịch vụ'
+                });
+            }
+        } else {
+            const [accounts] = await db.execute(
+                'SELECT id FROM mxh_accounts WHERE category_id = ? LIMIT 1',
+                [id]
+            );
+            if (accounts.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Khong the xoa danh muc dang co tai khoan dang ban'
+                });
+            }
         }
 
         await db.execute('DELETE FROM mxh_categories WHERE id = ?', [id]);

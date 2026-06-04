@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // PRODUCT DETAIL PAGE SCRIPT
 // File: frontend/js/pages/product.js
 // ============================================
@@ -32,6 +32,8 @@ window.pageInit = async function(params, query) {
     let purchaseGateState = {
         open: false
     };
+    let appliedCouponCode = null;
+    let couponDiscountAmount = 0;
     let anonymousViewCaptchaState = {
         required: false,
         enabled: false,
@@ -343,7 +345,8 @@ window.pageInit = async function(params, query) {
     function renderPurchaseButtons() {
         const user = Auth.getCurrentUser();
         const canEdit = user && (user.is_primary_admin === true || Number(user.id) === Number(product.seller_id));
-        const isFreeProduct = getEffectiveProductPrice(product) <= 0;
+        const effectivePrice = getEffectiveProductPrice(product);
+        const isFreeProduct = effectivePrice <= 0;
         const editBtn = canEdit ? `
             <button class="btn btn-outline" onclick="router.navigate('/suasanpham/${product.id}')">
                 <i class="fas fa-pen"></i> Sữa sản phẩm
@@ -381,8 +384,8 @@ window.pageInit = async function(params, query) {
             <div id="purchase-verification-panel" class="purchase-verification-panel is-hidden">
                 <div class="purchase-verification-head">
                     <div>
-                        <strong>Xác thực mua hàng</strong>
-                        <p>Khối này chỉ hiện sau khi bạn bấm mua.</p>
+                        <strong><i class="fas fa-shopping-bag"></i> Xác thực & Thanh toán</strong>
+                        <p>Vui lòng kiểm tra kỹ hóa đơn trước khi xác nhận mua.</p>
                     </div>
                     <button type="button" class="btn-ghost purchase-close-btn" id="purchase-close-btn">
                         Đóng
@@ -391,6 +394,59 @@ window.pageInit = async function(params, query) {
                 <div class="purchase-verification-note" id="purchase-verification-note">
                     ${isFreeProduct ? 'Sản phẩm này miễn phí nhưng vẫn cần xác thực trước khi nhận.' : 'Xác thực robot để tiếp tục thanh toán.'}
                 </div>
+                ${!isFreeProduct ? `
+                    <div class="checkout-invoice-card" id="checkout-invoice-card">
+                        <div class="checkout-invoice-title">
+                            <i class="fas fa-file-invoice-dollar"></i> Hóa đơn thanh toán
+                        </div>
+                        <div class="invoice-item">
+                            <span>Giá sản phẩm:</span>
+                            <span class="invoice-item-value">${formatMoney(effectivePrice)}</span>
+                        </div>
+                        <div class="invoice-item" id="invoice-coupon-row" style="display:none;">
+                            <span>Giảm giá voucher:</span>
+                            <span class="invoice-item-highlight" id="invoice-coupon-discount">-0đ</span>
+                        </div>
+                        <div class="invoice-total-row">
+                            <span class="invoice-total-label">Tổng thanh toán:</span>
+                            <span id="invoice-total" class="invoice-total-value">${formatMoney(effectivePrice)}</span>
+                        </div>
+                        
+                        <div class="payment-method-title">
+                            <i class="fas fa-wallet"></i> Phương thức thanh toán
+                        </div>
+                        <div class="invoice-item">
+                            <span>Phương thức:</span>
+                            <span class="invoice-item-value"><i class="fas fa-credit-card" style="margin-right: 4px; color: #fbbf24;"></i> Ví tài khoản MMO Shop</span>
+                        </div>
+                        <div class="invoice-item">
+                            <span>Số dư hiện tại:</span>
+                            <span class="invoice-item-value" style="color: #10b981;">${formatMoney(user ? Number(user.balance || 0) : 0)}</span>
+                        </div>
+                        <div class="invoice-item" style="border-top: 1px dashed var(--border); padding-top: 8px;">
+                            <span>Số dư sau khi mua:</span>
+                            <span id="invoice-remaining" class="invoice-remaining-value ${(user ? Number(user.balance || 0) : 0) >= effectivePrice ? 'sufficient' : 'insufficient'}" style="color: ${(user ? Number(user.balance || 0) : 0) >= effectivePrice ? '#10b981' : '#ef4444'};">
+                                ${formatMoney((user ? Number(user.balance || 0) : 0) - effectivePrice)}
+                            </span>
+                        </div>
+                        
+                        <div id="insufficient-balance-alert" class="insufficient-balance-alert" style="${(user ? Number(user.balance || 0) : 0) >= effectivePrice ? 'display:none;' : 'display:block;'}">
+                            <i class="fas fa-exclamation-triangle"></i> Số dư tài khoản không đủ để thanh toán. Vui lòng <a href="/naptien" data-link style="color: var(--primary); text-decoration: underline; font-weight: 600;">nạp thêm tiền tại đây</a>.
+                        </div>
+                    </div>
+
+                    <div class="coupon-section" id="coupon-section">
+                        <label class="coupon-label">
+                            <i class="fas fa-ticket-alt" style="color: #10b981;"></i> Áp dụng mã giảm giá / Voucher
+                        </label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="coupon-input" placeholder="Nhập mã giảm giá..." class="coupon-input-field">
+                            <button type="button" id="btn-apply-coupon" class="btn" style="background:var(--primary); border:none; color:#fff; padding:0 16px; font-size:13px; border-radius:6px; font-weight:600; cursor:pointer; transition: all 0.2s ease;">Áp dụng</button>
+                            <button type="button" id="btn-clear-coupon" class="btn" style="background:#ef4444; border:none; color:#fff; padding:0 16px; font-size:13px; border-radius:6px; font-weight:600; cursor:pointer; display:none; transition: all 0.2s ease;">Hủy mã</button>
+                        </div>
+                        <div id="coupon-msg" style="margin-top:8px; font-size:12.5px; display:none; font-weight:500;"></div>
+                    </div>
+                ` : ''}
                 <div id="purchase-recaptcha" class="recaptcha-slot is-hidden"></div>
                 <p id="purchase-recaptcha-status" class="captcha-gate-status"></p>
                 <div class="purchase-verification-actions">
@@ -1044,6 +1100,367 @@ window.pageInit = async function(params, query) {
         }
     }
 
+    function updateCheckoutInvoiceUI() {
+        const user = Auth.getCurrentUser();
+        const currentBalance = user ? Number(user.balance || 0) : 0;
+        const effectivePrice = getEffectiveProductPrice(product || {});
+        const finalPrice = Math.max(0, effectivePrice - couponDiscountAmount);
+        const remainingBalance = currentBalance - finalPrice;
+        const isBalanceSufficient = remainingBalance >= 0;
+
+        // Update invoice coupon row
+        const couponRow = document.getElementById('invoice-coupon-row');
+        const couponDiscountEl = document.getElementById('invoice-coupon-discount');
+        if (couponRow && couponDiscountEl) {
+            if (couponDiscountAmount > 0) {
+                couponRow.style.display = 'flex';
+                couponDiscountEl.textContent = `-${formatMoney(couponDiscountAmount)}`;
+            } else {
+                couponRow.style.display = 'none';
+            }
+        }
+
+        // Update invoice total
+        const totalEl = document.getElementById('invoice-total');
+        if (totalEl) {
+            totalEl.textContent = formatMoney(finalPrice);
+        }
+
+        // Update invoice remaining balance
+        const remainingEl = document.getElementById('invoice-remaining');
+        if (remainingEl) {
+            remainingEl.textContent = formatMoney(remainingBalance);
+            remainingEl.style.color = isBalanceSufficient ? '#10b981' : '#ef4444';
+        }
+
+        // Update balance alert
+        const balanceAlert = document.getElementById('insufficient-balance-alert');
+        if (balanceAlert) {
+            balanceAlert.style.display = isBalanceSufficient ? 'none' : 'block';
+        }
+
+        // Update confirm button disabled state if balance is insufficient
+        const confirmBtn = document.getElementById('purchase-confirm-btn');
+        if (confirmBtn) {
+            if (!isBalanceSufficient) {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Số dư không đủ';
+                confirmBtn.style.background = '#ef4444';
+                confirmBtn.style.color = '#fff';
+                confirmBtn.style.cursor = 'not-allowed';
+            } else {
+                // Restore standard state
+                confirmBtn.disabled = purchaseGateState.submitting || purchaseRecaptchaState.status === 'loading';
+                confirmBtn.innerHTML = purchaseGateState.submitting
+                    ? '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...'
+                    : 'Xác nhận mua';
+                confirmBtn.style.background = '';
+                confirmBtn.style.color = '';
+                confirmBtn.style.cursor = '';
+            }
+        }
+    }
+
+    function resetCouponUI() {
+        const inputCoupon = document.getElementById('coupon-input');
+        const btnApply = document.getElementById('btn-apply-coupon');
+        const btnClear = document.getElementById('btn-clear-coupon');
+        const msgCoupon = document.getElementById('coupon-msg');
+        if (inputCoupon) {
+            inputCoupon.disabled = false;
+            inputCoupon.value = '';
+            inputCoupon.style.borderColor = '';
+        }
+        if (btnApply) btnApply.style.display = 'block';
+        if (btnClear) btnClear.style.display = 'none';
+        if (msgCoupon) msgCoupon.style.display = 'none';
+    }
+
+    function showPurchaseSuccessModal(prod, paidAmount, voucherCode) {
+        // Remove any existing success modal
+        const oldModal = document.getElementById('purchase-success-modal');
+        if (oldModal) oldModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'purchase-success-modal';
+        modal.style.position = 'fixed';
+        modal.style.inset = '0';
+        modal.style.zIndex = '99999';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.padding = '16px';
+        
+        // CSS animations
+        const style = document.createElement('style');
+        style.id = 'success-modal-styles';
+        style.textContent = `
+            @keyframes success-pop {
+                0% { transform: scale(0.85); opacity: 0; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes checkmark-draw {
+                0% { transform: scale(0); opacity: 0; }
+                50% { transform: scale(1.2); }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes pulse-ring {
+                0% { transform: scale(0.95); opacity: 0.5; }
+                50% { transform: scale(1.1); opacity: 0.3; }
+                100% { transform: scale(1.2); opacity: 0; }
+            }
+            .success-backdrop {
+                position: absolute;
+                inset: 0;
+                background: rgba(2, 6, 23, 0.85);
+                backdrop-filter: blur(12px);
+                transition: opacity 0.3s ease;
+            }
+            .success-card {
+                position: relative;
+                z-index: 1;
+                width: min(480px, 100%);
+                border-radius: 24px;
+                border: 1px solid rgba(34, 197, 94, 0.2);
+                background: linear-gradient(135deg, #111827 0%, #030712 100%);
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(34, 197, 94, 0.1);
+                padding: 30px;
+                text-align: center;
+                animation: success-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                color: #f3f4f6;
+            }
+            .success-icon-container {
+                position: relative;
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .success-icon-ring {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                background: rgba(34, 197, 94, 0.15);
+                animation: pulse-ring 2s infinite ease-out;
+            }
+            .success-icon {
+                position: relative;
+                z-index: 2;
+                width: 72px;
+                height: 72px;
+                border-radius: 50%;
+                background: #22c55e;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-size: 36px;
+                box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+                animation: checkmark-draw 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            }
+            .success-title {
+                font-size: 24px;
+                font-weight: 800;
+                color: #22c55e;
+                margin-bottom: 8px;
+                background: linear-gradient(to right, #4ade80, #22c55e);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .success-subtitle {
+                font-size: 14px;
+                color: #9ca3af;
+                margin-bottom: 24px;
+            }
+            .success-details-table {
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 16px;
+                padding: 16px;
+                margin-bottom: 24px;
+                text-align: left;
+            }
+            .success-detail-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                font-size: 13.5px;
+            }
+            .success-detail-row:last-child {
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+            .success-detail-row:first-child {
+                padding-top: 0;
+            }
+            .success-detail-label {
+                color: #9ca3af;
+            }
+            .success-detail-value {
+                font-weight: 600;
+                color: #f3f4f6;
+                max-width: 240px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .success-detail-value.highlight {
+                color: #4ade80;
+                font-size: 15px;
+                font-weight: 700;
+            }
+            .success-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .btn-success-action {
+                width: 100%;
+                padding: 12px 20px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 14px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                border: none;
+            }
+            .btn-success-download {
+                background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+                color: white;
+                box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+            }
+            .btn-success-download:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+            }
+            .btn-success-history {
+                background: rgba(255, 255, 255, 0.06);
+                color: #e5e7eb;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .btn-success-history:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+            }
+            .btn-success-close {
+                background: transparent;
+                color: #9ca3af;
+                font-weight: 500;
+                font-size: 13px;
+                padding: 8px;
+            }
+            .btn-success-close:hover {
+                color: white;
+            }
+        `;
+        document.head.appendChild(style);
+
+        const hasDownload = !!prod.download_url;
+
+        modal.innerHTML = `
+            <div class="success-backdrop"></div>
+            <div class="success-card">
+                <div class="success-icon-container">
+                    <div class="success-icon-ring"></div>
+                    <div class="success-icon">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </div>
+                <h3 class="success-title">Mua Hàng Thành Công!</h3>
+                <p class="success-subtitle">Cảm ơn bạn đã tin tưởng MMO Shop. Đơn hàng của bạn đã hoàn tất.</p>
+                
+                <div class="success-details-table">
+                    <div class="success-detail-row">
+                        <span class="success-detail-label">Sản phẩm</span>
+                        <span class="success-detail-value" title="${prod.title || ''}">${prod.title || ''}</span>
+                    </div>
+                    ${voucherCode ? `
+                        <div class="success-detail-row">
+                            <span class="success-detail-label">Mã voucher</span>
+                            <span class="success-detail-value" style="color: #67e8f9; text-transform: uppercase;">${voucherCode}</span>
+                        </div>
+                    ` : ''}
+                    <div class="success-detail-row">
+                        <span class="success-detail-label">Thanh toán</span>
+                        <span class="success-detail-value highlight">${formatMoney(paidAmount)}</span>
+                    </div>
+                    <div class="success-detail-row">
+                        <span class="success-detail-label">Phương thức</span>
+                        <span class="success-detail-value"><i class="fas fa-wallet" style="margin-right: 4px; color: #fbbf24;"></i> Ví tài khoản</span>
+                    </div>
+                </div>
+
+                <div class="success-actions">
+                    ${hasDownload ? `
+                        <button type="button" class="btn-success-action btn-success-download" id="success-download-btn">
+                            <i class="fas fa-download"></i> Tải xuống sản phẩm ngay
+                        </button>
+                    ` : `
+                        <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); border-radius: 12px; padding: 12px; font-size: 13px; color: #f59e0b; margin-bottom: 12px; text-align: left;">
+                            <i class="fas fa-info-circle" style="margin-right: 4px;"></i> Người bán chưa đăng tải file tải trực tiếp. Vui lòng liên hệ hỗ trợ hoặc xem lịch sử mua hàng.
+                        </div>
+                    `}
+                    <button type="button" class="btn-success-action btn-success-history" id="success-history-btn">
+                        <i class="fas fa-history"></i> Lịch sử mua hàng
+                    </button>
+                    <button type="button" class="btn-success-action btn-success-close" id="success-close-btn">
+                        Tiếp tục xem trang sản phẩm
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const closeModal = () => {
+            modal.remove();
+            style.remove();
+        };
+
+        const downloadBtn = modal.querySelector('#success-download-btn');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => {
+                if (typeof window.downloadProduct === 'function') {
+                    window.downloadProduct();
+                } else if (prod.download_url) {
+                    window.open(prod.download_url, '_blank');
+                }
+            });
+        }
+
+        const historyBtn = modal.querySelector('#success-history-btn');
+        if (historyBtn) {
+            historyBtn.addEventListener('click', () => {
+                closeModal();
+                if (window.router) {
+                    window.router.navigate('/lichsumua');
+                } else {
+                    window.location.href = '/lichsumua';
+                }
+            });
+        }
+
+        const closeBtn = modal.querySelector('#success-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                closeModal();
+            });
+        }
+
+        const backdrop = modal.querySelector('.success-backdrop');
+        if (backdrop) {
+            backdrop.addEventListener('click', closeModal);
+        }
+    }
+
     function updatePurchaseGateState() {
         const panel = document.getElementById('purchase-verification-panel');
         const note = document.getElementById('purchase-verification-note');
@@ -1102,6 +1519,8 @@ window.pageInit = async function(params, query) {
                 status.textContent = 'Hãy xác nhận robot rồi bấm xác nhận mua.';
             }
         }
+
+        updateCheckoutInvoiceUI();
     }
 
     async function initPurchaseRecaptcha(forceReload = false) {
@@ -1161,6 +1580,8 @@ window.pageInit = async function(params, query) {
     function closePurchaseGate() {
         purchaseGateState.open = false;
         purchaseGateState.submitting = false;
+        appliedCouponCode = null;
+        couponDiscountAmount = 0;
         if (purchaseRecaptchaState.enabled && purchaseRecaptchaState.widgetId !== null && window.RecaptchaManager) {
             window.RecaptchaManager.reset(purchaseRecaptchaState.widgetId);
         }
@@ -1169,6 +1590,7 @@ window.pageInit = async function(params, query) {
             widgetId: null,
             status: 'idle'
         };
+        resetCouponUI();
         updatePurchaseGateState();
     }
 
@@ -1176,6 +1598,77 @@ window.pageInit = async function(params, query) {
         const confirmBtn = document.getElementById('purchase-confirm-btn');
         const cancelBtn = document.getElementById('purchase-cancel-btn');
         const closeBtn = document.getElementById('purchase-close-btn');
+
+        const btnApply = document.getElementById('btn-apply-coupon');
+        const btnClear = document.getElementById('btn-clear-coupon');
+        const inputCoupon = document.getElementById('coupon-input');
+        const msgCoupon = document.getElementById('coupon-msg');
+
+        if (btnApply && inputCoupon && msgCoupon) {
+            btnApply.addEventListener('click', async () => {
+                const code = inputCoupon.value.trim();
+                if (!code) {
+                    msgCoupon.style.display = 'block';
+                    msgCoupon.style.color = '#f43f5e';
+                    msgCoupon.textContent = 'Vui lòng nhập mã giảm giá';
+                    return;
+                }
+
+                btnApply.disabled = true;
+                btnApply.textContent = 'Đang áp...';
+                msgCoupon.style.display = 'none';
+                inputCoupon.style.borderColor = '';
+
+                try {
+                    const res = await api.post(`/products/${productId}/validate-coupon`, { coupon_code: code });
+                    if (res.success) {
+                        appliedCouponCode = res.data.coupon.code;
+                        couponDiscountAmount = res.data.discountAmount;
+                        
+                        msgCoupon.style.display = 'block';
+                        msgCoupon.style.color = '#22c55e';
+                        msgCoupon.innerHTML = `<i class="fas fa-check-circle"></i> Áp dụng thành công! Giảm <strong>${formatMoney(res.data.discountAmount)}</strong>.`;
+                        
+                        inputCoupon.disabled = true;
+                        inputCoupon.style.borderColor = '#22c55e';
+                        btnApply.style.display = 'none';
+                        if (btnClear) btnClear.style.display = 'block';
+                        
+                        updateCheckoutInvoiceUI();
+                    }
+                } catch (err) {
+                    appliedCouponCode = null;
+                    couponDiscountAmount = 0;
+                    msgCoupon.style.display = 'block';
+                    msgCoupon.style.color = '#f43f5e';
+                    msgCoupon.innerHTML = `<i class="fas fa-times-circle"></i> ${err.message || 'Mã giảm giá không hợp lệ'}`;
+                    inputCoupon.style.borderColor = '#f43f5e';
+                    
+                    updateCheckoutInvoiceUI();
+                } finally {
+                    btnApply.disabled = false;
+                    btnApply.textContent = 'Áp dụng';
+                }
+            });
+        }
+
+        if (btnClear && btnApply && inputCoupon && msgCoupon) {
+            btnClear.addEventListener('click', () => {
+                appliedCouponCode = null;
+                couponDiscountAmount = 0;
+                
+                inputCoupon.disabled = false;
+                inputCoupon.value = '';
+                inputCoupon.style.borderColor = '';
+                
+                btnApply.style.display = 'block';
+                btnClear.style.display = 'none';
+                
+                msgCoupon.style.display = 'none';
+                
+                updateCheckoutInvoiceUI();
+            });
+        }
 
         if (confirmBtn) {
             confirmBtn.addEventListener('click', () => {
@@ -1506,9 +1999,7 @@ window.pageInit = async function(params, query) {
             return;
         }
 
-        if (!confirm(`Bạn có chắc muốn mua "${String(product.title || '')}" với giá ${formatMoney(effectivePrice)}?`)) {
-            return;
-        }
+        const finalPrice = Math.max(0, effectivePrice - couponDiscountAmount);
 
         const recaptchaToken = purchaseRecaptchaState.enabled
             ? window.RecaptchaManager.getResponse(purchaseRecaptchaState.widgetId)
@@ -1524,16 +2015,23 @@ window.pageInit = async function(params, query) {
             updatePurchaseGateState();
 
             const response = await api.post(`/products/${productId}/purchase`, {
-                recaptcha_token: recaptchaToken
+                recaptcha_token: recaptchaToken,
+                coupon_code: appliedCouponCode || undefined
             });
 
             if (response.success) {
-                showToast('Mua sản phẩm thành công!', 'success');
-                
                 // Update user balance
                 const user = Auth.getCurrentUser();
-                user.balance = response.data.newBalance;
-                Auth.updateUser(user);
+                if (user && response.data && response.data.newBalance !== undefined) {
+                    user.balance = response.data.newBalance;
+                    Auth.updateUser(user);
+                }
+
+                // Show custom beautiful success modal
+                showPurchaseSuccessModal(product, finalPrice, appliedCouponCode);
+
+                // Close purchase gate
+                closePurchaseGate();
 
                 // Reload product
                 await loadProduct();

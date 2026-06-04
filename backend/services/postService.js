@@ -132,12 +132,27 @@ class PostService {
         );
 
         const combined = [...dbData, ...archiveData];
-        combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        // Schwartzian date sorting transform to avoid instantiating new Date objects inside comparator and handle invalid dates safely
+        const getTimestamp = (item) => {
+            if (!item?.created_at) return 0;
+            const t = new Date(item.created_at).getTime();
+            return Number.isFinite(t) ? t : 0;
+        };
+
+        const mapped = combined.map((item, index) => ({
+            index,
+            item,
+            timestamp: getTimestamp(item)
+        }));
+
+        mapped.sort((a, b) => b.timestamp - a.timestamp);
+        const sortedCombined = mapped.map(el => el.item);
 
         const safeLimit = Math.max(parseInt(limit, 10) || 10, 1);
         const safePage = Math.max(parseInt(page, 10) || 1, 1);
         const offset = (safePage - 1) * safeLimit;
-        const paged = combined.slice(offset, offset + safeLimit);
+        const paged = sortedCombined.slice(offset, offset + safeLimit);
 
         return {
             posts: paged,

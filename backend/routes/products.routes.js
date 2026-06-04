@@ -21,6 +21,7 @@ router.delete('/:id/reviews/:reviewId', authenticate, productController.deletePr
 
 // Purchase
 router.post('/:id/purchase', authenticate, productController.purchaseProduct.bind(productController));
+router.post('/:id/validate-coupon', authenticate, productController.validateCoupon.bind(productController));
 router.post('/:id/reviews', authenticate, productController.upsertProductReview.bind(productController));
 router.post('/:id/assistant-ai', optionalAuth, productController.askProductAssistant.bind(productController));
 

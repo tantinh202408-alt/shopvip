@@ -15,6 +15,7 @@ const {
     ensureNotificationColumns,
     ensureSecurityTables,
     ensureSecurityActionLogsTable,
+    ensureMxhTables,
     ensureRegistrationOtpTable,
     ensureGamificationTables,
     ensureFinanceTables
@@ -75,6 +76,7 @@ async function runBootstrap() {
     await ensureNotificationColumns();
     await ensureSecurityTables();
     await ensureSecurityActionLogsTable();
+    await ensureMxhTables();
     await ensureRegistrationOtpTable();
     await ensureGamificationTables();
     await ensureFinanceTables();
