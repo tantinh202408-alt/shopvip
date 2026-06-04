@@ -3,10 +3,20 @@
   "version": 2,
   "functions": {
     "api/*.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": [
+        "frontend/**",
+        "khungcanhan/**",
+        "database.sql"
+      ]
     },
     "api/**/*.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": [
+        "frontend/**",
+        "khungcanhan/**",
+        "database.sql"
+      ]
     }
   },
   "headers": [
