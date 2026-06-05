@@ -6994,11 +6994,16 @@ html[data-theme="dark"] .income-product-card,
 html[data-theme="dark"] .income-withdraw-card,
 html[data-theme="dark"] .withdraw-history-card,
 html[data-theme="dark"] .mission-link-card,
-html[data-theme="dark"] .income-products-more {
+html[data-theme="dark"] .income-products-more,
+html[data-theme="dark"] .income-dashboard-panel {
     background:
-        linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.94));
-    border-color: rgba(36, 50, 68, 0.95);
-    box-shadow: 0 16px 34px rgba(2, 8, 23, 0.22);
+        linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.94)) !important;
+    border-color: rgba(36, 50, 68, 0.95) !important;
+    box-shadow: 0 16px 34px rgba(2, 8, 23, 0.22) !important;
+}
+
+html[data-theme="dark"] .income-dashboard-panel-head {
+    border-bottom-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 html[data-theme="dark"] .income-empty-state,

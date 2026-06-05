@@ -308,6 +308,30 @@ window.pageInit = async function() {
         }
 
         renderProductsChart(products);
+
+        // Re-render chart dynamically when dark/light mode theme is toggled
+        const themeObserver = new MutationObserver(() => {
+            const activeTab = document.querySelector('.btn-chart-tab.active');
+            if (activeTab && activeTab.id === 'chart-tab-cashflow') {
+                renderCashflowChart(txs);
+            } else {
+                renderProductsChart(products);
+            }
+        });
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+        // Clean up observer when navigating away from the page
+        const cleanupObserver = new MutationObserver((mutations, obs) => {
+            const pageEl = document.querySelector('.seller-dashboard-page');
+            if (!pageEl) {
+                themeObserver.disconnect();
+                obs.disconnect();
+            }
+        });
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            cleanupObserver.observe(mainContent, { childList: true, subtree: true });
+        }
     }
 
     function renderProductsChart(products) {
