@@ -6872,6 +6872,88 @@ html[data-theme="dark"] .step-line {
     background: rgba(255, 255, 255, 0.05);
 }
 
+/* Glassmorphism background for Mission page */
+.mission-hub-page {
+    background: linear-gradient(rgba(241, 245, 249, 0.35), rgba(241, 245, 249, 0.55)), url('/img/OIP.png') no-repeat center center;
+    background-size: cover;
+    background-attachment: fixed;
+    padding: 32px;
+    border-radius: 30px;
+    margin-top: 18px;
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme="dark"] .mission-hub-page {
+    background: linear-gradient(rgba(15, 23, 42, 0.5), rgba(9, 15, 30, 0.75)), url('/img/OIP.png') no-repeat center center;
+    background-size: cover;
+    background-attachment: fixed;
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.55);
+}
+
+/* Translucent Frosted Glass Cards */
+.mission-hub-page .section-card {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06) !important;
+}
+
+html[data-theme="dark"] .mission-hub-page .section-card {
+    background: rgba(15, 23, 42, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Inner elements styling for readability */
+.mission-hub-page .mission-status-card {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+html[data-theme="dark"] .mission-hub-page .mission-status-card {
+    background: rgba(15, 23, 42, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+.mission-hub-page .mission-link-card {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+html[data-theme="dark"] .mission-hub-page .mission-link-card {
+    background: rgba(30, 41, 59, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+.mission-hub-page .mission-claim-form .form-control,
+.mission-hub-page .input-icon-wrapper input {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+    color: var(--ink) !important;
+}
+
+html[data-theme="dark"] .mission-hub-page .mission-claim-form .form-control,
+html[data-theme="dark"] .mission-hub-page .input-icon-wrapper input {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    color: #f8fafc !important;
+}
+
+.mission-hub-page .step-number {
+    background: rgba(255, 255, 255, 0.6) !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+html[data-theme="dark"] .mission-hub-page .step-number {
+    background: rgba(99, 102, 241, 0.25) !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+}
+
 /* Responsiveness overrides */
 @media (max-width: 1024px) {
     .mission-guide-steps {
