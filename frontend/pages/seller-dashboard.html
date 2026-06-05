@@ -1,23 +1,40 @@
 <div class="container seller-dashboard-page income-dashboard-page">
     <section class="section-card income-dashboard-hero">
         <div class="income-dashboard-hero-copy">
-            <span class="income-dashboard-eyebrow">Thu nhập</span>
+            <span class="income-dashboard-eyebrow"><i class="fa-solid fa-chart-pie"></i> Thu nhập</span>
             <h1 class="page-title">Dashboard thu nhập</h1>
             <p class="section-subtitle">Theo dõi số dư, doanh thu bán hàng và lệnh rút trên một màn hình gọn, dễ nhìn.</p>
         </div>
         <div class="income-dashboard-hero-actions">
-            <a href="/ruttien" data-link class="btn-primary">Tạo lệnh rút</a>
-            <a href="/dangban" data-link class="btn-outline">Đăng sản phẩm</a>
+            <a href="/ruttien" data-link class="btn-primary"><i class="fa-solid fa-wallet"></i> Tạo lệnh rút</a>
+            <a href="/dangban" data-link class="btn-outline"><i class="fa-solid fa-plus"></i> Đăng sản phẩm</a>
         </div>
     </section>
 
     <section id="seller-dashboard-summary" class="income-dashboard-grid"></section>
 
+    <!-- Chart Panel -->
+    <section class="section-card income-dashboard-panel seller-chart-section">
+        <div class="income-dashboard-panel-head">
+            <div>
+                <h3 class="section-title"><i class="fa-solid fa-chart-column title-icon text-primary"></i> Phân tích doanh thu & Dòng tiền</h3>
+                <p class="section-subtitle">Biểu đồ trực quan hóa doanh số sản phẩm và lịch sử giao dịch gần đây.</p>
+            </div>
+            <div class="chart-tab-actions">
+                <button id="chart-tab-products" class="btn-chart-tab active">Sản phẩm</button>
+                <button id="chart-tab-cashflow" class="btn-chart-tab">Dòng tiền</button>
+            </div>
+        </div>
+        <div class="seller-chart-container">
+            <canvas id="seller-dashboard-chart"></canvas>
+        </div>
+    </section>
+
     <div class="income-dashboard-layout">
         <section class="section-card income-dashboard-panel">
             <div class="income-dashboard-panel-head">
                 <div>
-                    <h3 class="section-title">Sản phẩm nổi bật</h3>
+                    <h3 class="section-title"><i class="fa-solid fa-star text-yellow title-icon"></i> Sản phẩm nổi bật</h3>
                     <p class="section-subtitle">Hiển thị 5 sản phẩm có mua, xem hoặc doanh thu cao nhất.</p>
                 </div>
             </div>
@@ -27,7 +44,7 @@
         <section class="section-card income-dashboard-panel">
             <div class="income-dashboard-panel-head">
                 <div>
-                    <h3 class="section-title">Lệnh rút gần đây</h3>
+                    <h3 class="section-title"><i class="fa-solid fa-money-bill-transfer text-primary title-icon"></i> Lệnh rút gần đây</h3>
                     <p class="section-subtitle">Trạng thái xử lý của các lệnh rút mới nhất.</p>
                 </div>
             </div>
@@ -38,7 +55,7 @@
     <section class="section-card income-dashboard-panel">
         <div class="income-dashboard-panel-head">
             <div>
-                <h3 class="section-title">Dòng tiền gần đây</h3>
+                <h3 class="section-title"><i class="fa-solid fa-timeline text-indigo title-icon"></i> Dòng tiền gần đây</h3>
                 <p class="section-subtitle">Các giao dịch vào ra gần nhất của tài khoản.</p>
             </div>
         </div>

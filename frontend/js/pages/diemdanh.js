@@ -154,16 +154,46 @@ window.pageInit = async function() {
             const amount = formatMoney(Number(item.amount || 0));
             const isClaimed = day <= Number(progress.claimedCount || 0);
             const isNext = day === Number(progress.activeDay || 1);
-            const stateLabel = isClaimed ? 'Đã nhận' : (isNext ? 'Hôm nay' : 'Sắp tới');
+            const isLast = index === rewards.length - 1;
+            
+            let statusClass = '';
+            let iconHtml = '';
+            let stateLabel = '';
+
+            if (isClaimed) {
+                statusClass = 'is-claimed';
+                stateLabel = 'Đã nhận';
+                iconHtml = '<span class="checkin-day-chip-icon text-success"><i class="fa-solid fa-circle-check"></i></span>';
+            } else if (isNext) {
+                statusClass = 'is-next';
+                stateLabel = 'Hôm nay';
+                iconHtml = isLast 
+                    ? '<span class="checkin-day-chip-icon text-warning animate-pulse"><i class="fa-solid fa-crown fa-bounce"></i></span>'
+                    : '<span class="checkin-day-chip-icon text-primary animate-pulse"><i class="fa-solid fa-gift fa-bounce"></i></span>';
+            } else {
+                statusClass = 'is-upcoming';
+                stateLabel = 'Chờ';
+                iconHtml = isLast
+                    ? '<span class="checkin-day-chip-icon text-muted"><i class="fa-solid fa-crown"></i></span>'
+                    : '<span class="checkin-day-chip-icon text-muted"><i class="fa-solid fa-lock"></i></span>';
+            }
+
+            if (isLast) {
+                statusClass += ' is-milestone';
+            }
+
             const rewardLabel = escapeHtml(item.label || `Ngày ${day}`);
 
             return `
-                <article class="checkin-day-chip ${isClaimed ? 'is-claimed' : ''} ${isNext ? 'is-next' : ''}">
+                <article class="checkin-day-chip ${statusClass}">
                     <div class="checkin-day-chip-top">
                         <span class="checkin-day-chip-state">${stateLabel}</span>
                         <strong>Ngày ${day}</strong>
                     </div>
-                    <div class="checkin-day-chip-amount">${amount}</div>
+                    <div class="checkin-day-chip-center">
+                        ${iconHtml}
+                        <div class="checkin-day-chip-amount">${amount}</div>
+                    </div>
                     <div class="checkin-day-chip-title">${rewardLabel}</div>
                 </article>
             `;
@@ -180,12 +210,14 @@ window.pageInit = async function() {
 
         historyEl.innerHTML = items.map((item) => `
             <div class="reward-history-item checkin-history-item">
-                <div class="checkin-history-marker"></div>
+                <div class="checkin-history-icon-wrapper">
+                    <span class="checkin-history-icon text-success"><i class="fa-solid fa-circle-check"></i></span>
+                </div>
                 <div class="checkin-history-body">
                     <strong>${escapeHtml(item.claimDate || '')}</strong>
-                    <div class="reward-history-meta">Streak ${Number(item.consecutiveDays || 1)} ngày</div>
+                    <div class="reward-history-meta"><i class="fa-solid fa-fire text-orange"></i> Chuỗi điểm danh: ${Number(item.consecutiveDays || 1)} ngày</div>
                 </div>
-                <div class="reward-history-amount is-positive">${formatMoney(Number(item.rewardAmount || 0))}</div>
+                <div class="reward-history-amount is-positive">+${formatMoney(Number(item.rewardAmount || 0))}</div>
             </div>
         `).join('');
     }
