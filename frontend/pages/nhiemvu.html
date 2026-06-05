@@ -1,43 +1,107 @@
 <div class="container mission-page mission-hub-page">
+    <!-- Hero Section -->
     <section class="section-card mission-hub-hero">
         <div class="mission-hub-copy">
-            <span class="mission-hub-eyebrow">Nhiệm vụ 400đ</span>
-            <h1 class="page-title">Nhiệm vụ vượt link</h1>
-            <p class="section-subtitle">Tạo link Link4m, vượt link, copy key ở trang mở ra rồi dán lại tại đây để nhận thưởng nếu key đúng.</p>
+            <span class="mission-hub-eyebrow"><i class="fa-solid fa-circle-nodes"></i> Nhiệm vụ vượt link</span>
+            <h1 class="page-title">Kiếm tiền vượt link</h1>
+            <p class="section-subtitle">Tạo liên kết rút gọn, hoàn thành các bước để lấy mã Key độc quyền ở trang đích và quy đổi ngay sang số dư tài khoản.</p>
         </div>
         <div class="mission-hub-reward">
-            <span>Thưởng hôm nay</span>
-            <strong>400 ₫</strong>
+            <span class="reward-title">Thưởng hoàn thành</span>
+            <strong class="reward-val"><i class="fa-solid fa-coins text-warning fa-bounce"></i> 400đ</strong>
         </div>
     </section>
 
+    <!-- Main Grid Workspace -->
     <div class="mission-hub-layout">
+        <!-- Left: Action & Link generation panel -->
         <section class="section-card mission-hub-panel">
             <div class="mission-hub-panel-head">
                 <div>
-                    <h3 class="section-title">Tạo link lấy key</h3>
-                    <p class="section-subtitle">Hệ thống sẽ tự gọi Link4m bằng API key để tạo link rút gọn.</p>
+                    <h3 class="section-title"><i class="fa-solid fa-link-slash text-primary title-icon"></i> Tạo liên kết nhiệm vụ</h3>
+                    <p class="section-subtitle">Sinh liên kết ngẫu nhiên an toàn để bắt đầu nhiệm vụ.</p>
                 </div>
-                <button id="mission-generate" class="btn-primary" type="button">Tạo link Link4m</button>
+                <button id="mission-generate" class="btn-primary" type="button">
+                    <i class="fa-solid fa-bolt"></i> Tạo link
+                </button>
             </div>
+            
             <div id="mission-status" class="mission-status-banner"></div>
             <div id="mission-link" class="mission-link-slot"></div>
         </section>
 
+        <!-- Right: Claim panel -->
         <section class="section-card mission-hub-panel mission-claim-panel">
             <div class="mission-hub-panel-head">
                 <div>
-                    <h3 class="section-title">Nhập key nhận thưởng</h3>
-                    <p class="section-subtitle">Sau khi vượt link, key sẽ hiện ra ở trang đích để bạn copy và dán lại.</p>
+                    <h3 class="section-title"><i class="fa-solid fa-gift text-success title-icon"></i> Nhập Key nhận thưởng</h3>
+                    <p class="section-subtitle">Dán mã key nhận được sau khi vượt link để nhận quà.</p>
                 </div>
             </div>
+            
             <div class="mission-claim-form">
                 <div class="form-group">
-                    <label for="mission-key">Key độc quyền</label>
-                    <input id="mission-key" type="text" placeholder="Nhập key sau khi vượt link">
+                    <label for="mission-key" class="field-label"><i class="fa-solid fa-unlock-keyhole"></i> Mã key độc quyền</label>
+                    <input id="mission-key" type="text" placeholder="Dán mã key của bạn tại đây..." class="form-control" autocomplete="off">
                 </div>
-                <button id="mission-claim" class="btn-outline" type="button">Nhận thưởng</button>
+                <button id="mission-claim" class="btn-primary btn-claim" type="button">
+                    <i class="fa-solid fa-circle-check"></i> Xác nhận & Nhận thưởng
+                </button>
             </div>
         </section>
     </div>
+
+    <!-- Stepper Roadmap / Guide -->
+    <section class="section-card mission-guide-panel">
+        <div class="guide-header">
+            <h3 class="section-title"><i class="fa-solid fa-circle-info text-info title-icon"></i> Hướng dẫn hoàn thành</h3>
+            <p class="section-subtitle">Vui lòng theo dõi chi tiết các bước để không gặp lỗi trong quá trình lấy key.</p>
+        </div>
+        
+        <div class="mission-guide-steps">
+            <div class="guide-step">
+                <div class="step-badge">
+                    <span class="step-number">01</span>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-info">
+                    <h4>Khởi tạo Link</h4>
+                    <p>Nhấp chọn nút <strong>"Tạo link"</strong> để gọi API đối tác cấp quyền vượt link.</p>
+                </div>
+            </div>
+            
+            <div class="guide-step">
+                <div class="step-badge">
+                    <span class="step-number">02</span>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-info">
+                    <h4>Vượt liên kết</h4>
+                    <p>Nhấp <strong>"Mở link"</strong>, chờ giây đếm ngược hoặc giải captcha xác thực robot.</p>
+                </div>
+            </div>
+            
+            <div class="guide-step">
+                <div class="step-badge">
+                    <span class="step-number">03</span>
+                    <div class="step-line"></div>
+                </div>
+                <div class="step-info">
+                    <h4>Sao chép Key</h4>
+                    <p>Cuộn xuống chân trang đích, tìm nút copy hoặc sao chép chuỗi mã key được hiển thị.</p>
+                </div>
+            </div>
+            
+            <div class="guide-step">
+                <div class="step-badge">
+                    <span class="step-number">04</span>
+                </div>
+                <div class="step-info">
+                    <h4>Nhận phần thưởng</h4>
+                    <p>Quay lại trang này, dán mã key vào ô nhập và bấm <strong>"Nhận thưởng"</strong>.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
+

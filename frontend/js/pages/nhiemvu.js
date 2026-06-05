@@ -13,21 +13,72 @@ window.pageInit = async function() {
             const data = res.data || {};
             const shortLink = String(data.shortLink || data.link || '').trim();
 
-            linkEl.innerHTML = `
-                <div class="mission-link-card">
-                    <div class="mission-link-provider">
-                        <span>Link4m</span>
-                        <strong>${shortLink ? 'Sẵn sàng' : 'Lỗi'}</strong>
-                    </div>
-                    <div class="mission-link-field">
-                        <label>Link vượt nhiệm vụ</label>
-                        <div class="mission-link-input-wrap">
-                            <input type="text" value="${escapeHtml(shortLink)}" readonly>
-                            <button type="button" class="btn-outline" data-copy-mission-link="${escapeHtml(shortLink)}">Copy</button>
-                            <a class="btn-primary" href="${escapeHtml(shortLink || '#')}" target="_blank" rel="noopener noreferrer">Mở link</a>
+            if (!shortLink) {
+                linkEl.innerHTML = `
+                    <div class="mission-link-card is-error">
+                        <div class="mission-link-header">
+                            <div class="provider-info">
+                                <div class="provider-logo error">
+                                    <i class="fa-solid fa-circle-xmark text-danger"></i>
+                                </div>
+                                <div class="provider-details">
+                                    <span class="provider-lbl">Đối tác rút gọn</span>
+                                    <strong class="provider-name">Link4m</strong>
+                                </div>
+                            </div>
+                            <div class="status-badge is-error">
+                                <span class="pulse-dot-red"></span> Lỗi
+                            </div>
+                        </div>
+                        <div class="mission-link-body">
+                            <p style="margin:0; font-size:13px; color:var(--muted); line-height:1.5;">
+                                Không thể khởi tạo liên kết nhiệm vụ từ đối tác. Vui lòng thử lại sau giây lát.
+                            </p>
                         </div>
                     </div>
-                    ${data.shortLinkError ? `<div class="mission-link-warning">${escapeHtml(data.shortLinkError)}</div>` : ''}
+                `;
+                return;
+            }
+
+            linkEl.innerHTML = `
+                <div class="mission-link-card">
+                    <div class="mission-link-header">
+                        <div class="provider-info">
+                            <div class="provider-logo">
+                                <i class="fa-solid fa-link text-primary"></i>
+                            </div>
+                            <div class="provider-details">
+                                <span class="provider-lbl">Đối tác rút gọn</span>
+                                <strong class="provider-name">Link4m</strong>
+                            </div>
+                        </div>
+                        <div class="status-badge is-ready">
+                            <span class="pulse-dot"></span> Sẵn sàng
+                        </div>
+                    </div>
+                    <div class="mission-link-body">
+                        <div class="field-label">Đường dẫn vượt nhiệm vụ</div>
+                        <div class="mission-link-input-group">
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-link-slash"></i>
+                                <input type="text" value="${escapeHtml(shortLink)}" readonly>
+                            </div>
+                            <div class="btn-group">
+                                <button type="button" class="btn-outline btn-copy" data-copy-mission-link="${escapeHtml(shortLink)}">
+                                    <i class="fa-regular fa-copy"></i> Sao chép
+                                </button>
+                                <a class="btn-primary btn-open" href="${escapeHtml(shortLink)}" target="_blank" rel="noopener noreferrer">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Mở link
+                                </a>
+                            </div>
+                        </div>
+                        ${data.shortLinkError ? `
+                            <div class="mission-link-warning">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <span>${escapeHtml(data.shortLinkError)}</span>
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
             `;
 
@@ -59,13 +110,32 @@ window.pageInit = async function() {
             const res = await api.get('/mission/status', {}, { forceRefresh: true });
             const data = res.data || {};
             statusEl.innerHTML = `
-                <div class="mission-status-copy ${data.completedToday ? 'is-success' : 'is-pending'}">
-                    <strong>${data.completedToday ? 'Hôm nay bạn đã hoàn thành nhiệm vụ.' : 'Hôm nay bạn chưa nhận thưởng nhiệm vụ.'}</strong>
-                    <span>${data.completedToday ? `Hoàn thành lúc ${data.usedAt ? formatDateShort(data.usedAt) : 'hôm nay'}.` : 'Tạo link, vượt Link4m, copy key rồi dán lại để nhận thưởng.'}</span>
+                <div class="mission-status-card ${data.completedToday ? 'is-success' : 'is-pending'}">
+                    <div class="status-icon-wrapper">
+                        <i class="${data.completedToday ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation fa-fade'}"></i>
+                    </div>
+                    <div class="status-text-content">
+                        <h4 class="status-title">${data.completedToday ? 'Hoàn thành hôm nay!' : 'Nhiệm vụ đang chờ'}</h4>
+                        <p class="status-desc">
+                            ${data.completedToday 
+                                ? `Bạn đã nhận phần thưởng vào lúc <strong>${data.usedAt ? formatDateShort(data.usedAt) : 'hôm nay'}</strong>. Quay lại vào ngày mai nhé!` 
+                                : 'Bạn chưa hoàn thành nhiệm vụ hôm nay. Hãy tạo liên kết rút gọn bên dưới và vượt qua liên kết để nhận key.'}
+                        </p>
+                    </div>
                 </div>
             `;
         } catch (_) {
-            statusEl.innerHTML = '<div class="mission-status-copy">Không thể tải trạng thái nhiệm vụ.</div>';
+            statusEl.innerHTML = `
+                <div class="mission-status-card is-error">
+                    <div class="status-icon-wrapper">
+                        <i class="fa-solid fa-circle-xmark text-danger"></i>
+                    </div>
+                    <div class="status-text-content">
+                        <h4 class="status-title">Lỗi kết nối</h4>
+                        <p class="status-desc">Không thể tải trạng thái nhiệm vụ. Vui lòng tải lại trang.</p>
+                    </div>
+                </div>
+            `;
         }
     }
 };
