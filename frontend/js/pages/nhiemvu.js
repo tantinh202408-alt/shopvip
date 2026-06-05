@@ -5,48 +5,6 @@ window.pageInit = async function() {
     const generateBtn = document.getElementById('mission-generate');
     const claimBtn = document.getElementById('mission-claim');
 
-    // Autoplay background music
-    const audioSrc = '/audio/SaveTik.io_7638498349515066644.mp3';
-    let missionAudio = new Audio(audioSrc);
-    missionAudio.loop = true;
-    missionAudio.volume = 0.5;
-
-    function playAudio() {
-        missionAudio.play().then(() => {
-            console.log('Music playing successfully');
-        }).catch(err => {
-            console.warn('Autoplay blocked, waiting for user click:', err);
-            const startOnInteraction = () => {
-                missionAudio.play().catch(e => console.error(e));
-                document.removeEventListener('click', startOnInteraction);
-                document.removeEventListener('keydown', startOnInteraction);
-            };
-            document.addEventListener('click', startOnInteraction);
-            document.addEventListener('keydown', startOnInteraction);
-        });
-    }
-
-    playAudio();
-
-    // Stop audio when page is unloaded / user navigates away
-    const unloadObserver = new MutationObserver((mutations, obs) => {
-        const pageEl = document.querySelector('.mission-hub-page');
-        if (!pageEl) {
-            if (missionAudio) {
-                missionAudio.pause();
-                missionAudio.src = '';
-                missionAudio = null;
-            }
-            obs.disconnect();
-            console.log('Navigated away, mission audio stopped');
-        }
-    });
-
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-        unloadObserver.observe(mainContent, { childList: true, subtree: true });
-    }
-
     await loadStatus();
 
     generateBtn?.addEventListener('click', async () => {

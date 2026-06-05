@@ -68,7 +68,7 @@ class MissionController {
 
             let key = existing[0]?.key_string;
             if (!key) {
-                key = crypto.randomBytes(18).toString('hex');
+                key = 'SD-NHIEMVU-' + crypto.randomBytes(18).toString('hex');
                 await db.execute(
                     `INSERT INTO bypass_keys (key_string, user_id, mission_date, is_used)
                      VALUES (?, ?, ?, 0)`,
