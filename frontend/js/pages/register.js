@@ -186,6 +186,7 @@ window.pageInit = async function() {
             email: responseData.email || payload.email,
             payload,
             hint: buildOtpHint(responseData),
+            bypass_code: responseData.bypass_code || '',
             hasReadTerms: true,
             createdAt: Date.now()
         };

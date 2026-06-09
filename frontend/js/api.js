@@ -31,6 +31,85 @@ if (typeof window.buildApiUrl !== 'function') {
     };
 }
 
+// ============================================
+// API CRYPTO HELPERS (Web Crypto API)
+// ============================================
+const SECRET_KEY = 'default_secret_key_source_market'; // Must match backend key source
+
+function hexToUint8Array(hexString) {
+    const length = hexString.length / 2;
+    const array = new Uint8Array(length);
+    for (let i = 0; i < length; i++) {
+        array[i] = parseInt(hexString.substr(i * 2, 2), 16);
+    }
+    return array;
+}
+
+function uint8ArrayToHex(uint8Array) {
+    return Array.from(uint8Array)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+async function getCryptoKey() {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(SECRET_KEY);
+    const hash = await window.crypto.subtle.digest('SHA-256', keyData);
+    return window.crypto.subtle.importKey(
+        'raw',
+        hash,
+        { name: 'AES-CBC' },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+
+async function encryptData(text) {
+    if (!text) return '';
+    try {
+        const key = await getCryptoKey();
+        const iv = window.crypto.getRandomValues(new Uint8Array(16));
+        const encoder = new TextEncoder();
+        const data = encoder.encode(text);
+        const encrypted = await window.crypto.subtle.encrypt(
+            { name: 'AES-CBC', iv: iv },
+            key,
+            data
+        );
+        const ciphertextHex = uint8ArrayToHex(new Uint8Array(encrypted));
+        const ivHex = uint8ArrayToHex(iv);
+        return `${ivHex}:${ciphertextHex}`;
+    } catch (e) {
+        console.error('Encryption error:', e);
+        return text;
+    }
+}
+
+async function decryptData(encryptedStr) {
+    if (!encryptedStr || !encryptedStr.includes(':')) return encryptedStr;
+    try {
+        const parts = encryptedStr.split(':');
+        const ivHex = parts[0];
+        const ciphertextHex = parts[1];
+        
+        const key = await getCryptoKey();
+        const iv = hexToUint8Array(ivHex);
+        const ciphertext = hexToUint8Array(ciphertextHex);
+        
+        const decrypted = await window.crypto.subtle.decrypt(
+            { name: 'AES-CBC', iv: iv },
+            key,
+            ciphertext
+        );
+        
+        const decoder = new TextDecoder();
+        return decoder.decode(decrypted);
+    } catch (e) {
+        console.error('Decryption error:', e);
+        return encryptedStr;
+    }
+}
+
 class APIClient {
     constructor(baseURL) {
         this.baseURL = baseURL;
@@ -125,7 +204,8 @@ class APIClient {
         const method = String(options.method || 'GET').toUpperCase();
         const headers = {
             'X-App-Client': 'web',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-Encrypted-Payload': '1'
         };
         const hasJsonBody = options.body !== undefined && options.body !== null && !(options.body instanceof FormData);
 
@@ -242,15 +322,26 @@ class APIClient {
         }
 
         const requestTask = (async () => {
+            let requestBody = options.body;
+            if (requestBody && typeof requestBody === 'string') {
+                try {
+                    const encryptedBody = await encryptData(requestBody);
+                    requestBody = JSON.stringify({ data: encryptedBody });
+                } catch (err) {
+                    console.error('Failed to encrypt request body:', err);
+                }
+            }
+
             const clientIpHeaders = await this.getClientIpHeaders(endpoint);
             const config = {
                 ...options,
                 method,
+                body: requestBody,
                 credentials: 'include',
                 headers: {
                     ...this.getHeaders({
                         method,
-                        body: options.body
+                        body: requestBody
                     }),
                     ...clientIpHeaders,
                     ...options.headers
@@ -265,9 +356,18 @@ class APIClient {
                 }
 
                 const contentType = response.headers.get('content-type') || '';
-                const data = contentType.includes('application/json')
+                let data = contentType.includes('application/json')
                     ? await response.json()
                     : null;
+
+                if (data && data.data && typeof data.data === 'string' && data.data.includes(':')) {
+                    try {
+                        const decrypted = await decryptData(data.data);
+                        data = JSON.parse(decrypted);
+                    } catch (err) {
+                        console.error('Error decrypting response:', err);
+                    }
+                }
 
                 if (!response.ok) {
                     const error = new Error(data?.message || 'Request failed');
@@ -348,7 +448,8 @@ class APIClient {
         const token = localStorage.getItem('token');
         const headers = {
             'X-App-Client': 'web',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-Encrypted-Payload': '1'
         };
 
         if (token) {
@@ -367,7 +468,16 @@ class APIClient {
             throw new Error('IP cua ban dang bi khoa tam thoi');
         }
 
-        const data = await response.json();
+        let data = await response.json();
+        if (data && data.data && typeof data.data === 'string' && data.data.includes(':')) {
+            try {
+                const decrypted = await decryptData(data.data);
+                data = JSON.parse(decrypted);
+            } catch (err) {
+                console.error('Error decrypting upload response:', err);
+            }
+        }
+
         if (data?.code === this.humanGateCode) {
             this.redirectToHumanGate();
             throw new Error(data.message || 'Vui lòng xác nhận bạn là người thật');
@@ -388,6 +498,7 @@ class APIClient {
             xhr.withCredentials = true;
             xhr.setRequestHeader('X-App-Client', 'web');
             xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('X-Encrypted-Payload', '1');
             if (token) {
                 xhr.setRequestHeader('Authorization', `Bearer ${token}`);
             }
@@ -400,7 +511,7 @@ class APIClient {
                 }
             });
 
-            xhr.onload = () => {
+            xhr.onload = async () => {
                 try {
                     const responseURL = xhr.responseURL ? new URL(xhr.responseURL, window.location.origin) : null;
                     if (responseURL && responseURL.pathname === this.blockedIpPath) {
@@ -409,7 +520,16 @@ class APIClient {
                         return;
                     }
 
-                    const data = JSON.parse(xhr.responseText || '{}');
+                    let responseText = xhr.responseText || '{}';
+                    try {
+                        const parsed = JSON.parse(responseText);
+                        if (parsed && parsed.data && typeof parsed.data === 'string' && parsed.data.includes(':')) {
+                            const decrypted = await decryptData(parsed.data);
+                            responseText = decrypted;
+                        }
+                    } catch (_) {}
+
+                    const data = JSON.parse(responseText);
                     if (data?.code === this.humanGateCode) {
                         this.redirectToHumanGate();
                         reject(new Error(data.message || 'Vui lòng xác nhận bạn là người thật'));

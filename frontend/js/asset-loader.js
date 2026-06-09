@@ -8,7 +8,12 @@
     const BLOCKED_IP_PATH = '/blocked-ip.html';
     const HUMAN_CHECK_URL = `${window.location.origin}/human-check.html`;
     const HUMAN_GATE_CODE = 'HUMAN_GATE_REQUIRED';
-    const IS_LOCALHOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const hostname = window.location.hostname;
+    const IS_LOCALHOST = ['localhost', '127.0.0.1', '[::1]'].includes(hostname) ||
+                         hostname.startsWith('192.168.') ||
+                         hostname.startsWith('10.') ||
+                         /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname) ||
+                         hostname.endsWith('.local');
     const REQUEST_HEADERS = {
         'X-Requested-With': 'XMLHttpRequest'
     };
@@ -139,7 +144,12 @@
 
         if (!bootstrapPromise) {
             bootstrapPromise = (async () => {
-                const response = await fetch(buildApiUrl('assets/bootstrap'), {
+                const bypassCache = IS_LOCALHOST || new URLSearchParams(window.location.search).has('nocache');
+                const url = bypassCache
+                    ? buildApiUrl(`assets/bootstrap?_t=${Date.now()}`)
+                    : buildApiUrl('assets/bootstrap');
+
+                const response = await fetch(url, {
                     credentials: 'include',
                     headers: REQUEST_HEADERS
                 });
@@ -171,7 +181,12 @@
     async function fetchAssetMeta(assetPath, hasRetried = false) {
         const bootstrap = await fetchBootstrap();
 
-        const response = await fetch(buildApiUrl(`assets/text?path=${encodeURIComponent(assetPath)}`), {
+        const bypassCache = IS_LOCALHOST || new URLSearchParams(window.location.search).has('nocache');
+        const url = bypassCache
+            ? buildApiUrl(`assets/text?path=${encodeURIComponent(assetPath)}&_t=${Date.now()}`)
+            : buildApiUrl(`assets/text?path=${encodeURIComponent(assetPath)}`);
+
+        const response = await fetch(url, {
             credentials: 'include',
             headers: {
                 ...REQUEST_HEADERS,

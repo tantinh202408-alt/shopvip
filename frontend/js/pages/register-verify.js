@@ -19,6 +19,29 @@ window.pageInit = async function() {
 
     populateVerifyStep();
 
+    // Wire up bypass code UI
+    const toggleBypassBtn = document.getElementById('toggle-bypass-code-btn');
+    const bypassContainer = document.getElementById('bypass-code-container');
+    const bypassValue = document.getElementById('bypass-code-value');
+
+    if (toggleBypassBtn && bypassContainer && bypassValue && pendingRegistration?.bypass_code) {
+        bypassValue.textContent = pendingRegistration.bypass_code;
+        toggleBypassBtn.addEventListener('click', () => {
+            const isHidden = bypassContainer.style.display === 'none';
+            bypassContainer.style.display = isHidden ? 'block' : 'none';
+        });
+
+        bypassValue.addEventListener('click', () => {
+            navigator.clipboard.writeText(bypassValue.textContent).then(() => {
+                showToast('Đã sao chép mã định danh sự cố!', 'success');
+            }).catch(() => {
+                showToast('Không thể tự động sao chép. Hãy chọn thủ công.', 'error');
+            });
+        });
+    } else if (toggleBypassBtn) {
+        toggleBypassBtn.style.display = 'none';
+    }
+
     otpInput.addEventListener('input', () => {
         otpInput.value = String(otpInput.value || '').replace(/\D/g, '').slice(0, 6);
     });

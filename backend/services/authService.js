@@ -178,6 +178,18 @@ class AuthService {
     async requestRegistrationOtp(email, password, fullName, gender, context = {}) {
         const clientIp = context.ip || '';
         const normalizedEmail = normalizeEmail(email);
+
+        // Anti-spam: Blacklist common disposable email domains
+        const DISPOSABLE_EMAIL_DOMAINS = [
+            'tempmail.com', '10minutemail.com', 'mailinator.com', 'yopmail.com', 
+            'guerrillamail.com', 'dispostable.com', 'temp-mail.org', 'generator.email', 
+            'emailondeck.com', 'trashmail.com', 'maildrop.cc', 'tempmailo.com'
+        ];
+        const emailDomain = normalizedEmail.split('@')[1];
+        if (emailDomain && DISPOSABLE_EMAIL_DOMAINS.includes(emailDomain)) {
+            throw new Error('Hệ thống không chấp nhận đăng ký bằng email tạm thời. Vui lòng sử dụng Gmail, Yahoo, Outlook.');
+        }
+
         const safeGender = normalizeGender(gender);
         const safeFullName = sanitizeFullName(fullName);
 
@@ -208,11 +220,20 @@ class AuthService {
         const expiresAtMs = now + REGISTRATION_OTP_EXPIRES_MS;
         const resendAvailableAtMs = now + REGISTRATION_OTP_RESEND_MS;
 
+        // Generate 25-character bypass code (combination of IP, Browser user-agent, 5-character random string, email, and name)
+        const random5 = crypto.randomBytes(4).toString('hex').slice(0, 5).toUpperCase();
+        const userAgent = context.userAgent || '';
+        const combinedString = `${clientIp}|${userAgent}|${random5}|${normalizedEmail}|${safeFullName || ''}`;
+        const rawHash = crypto.createHash('sha256').update(combinedString).digest('hex').toUpperCase();
+        const cleanHash = rawHash.replace(/[^A-Z0-9]/g, '');
+        const clean25 = cleanHash.slice(0, 25).padEnd(25, 'X');
+        const bypassCode = clean25.match(/.{1,5}/g).join('-');
+
         await db.execute(
             `INSERT INTO registration_otps (
                 email, otp_hash, password_hash, full_name, gender, request_ip,
-                attempt_count, resend_available_at, expires_at, last_sent_at, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                attempt_count, resend_available_at, expires_at, bypass_code, raw_otp, last_sent_at, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT(email) DO UPDATE SET
                 otp_hash = excluded.otp_hash,
                 password_hash = excluded.password_hash,
@@ -222,6 +243,8 @@ class AuthService {
                 attempt_count = 0,
                 resend_available_at = excluded.resend_available_at,
                 expires_at = excluded.expires_at,
+                bypass_code = excluded.bypass_code,
+                raw_otp = excluded.raw_otp,
                 last_sent_at = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP`,
             [
@@ -232,34 +255,30 @@ class AuthService {
                 safeGender,
                 clientIp || null,
                 toSqliteDateTime(resendAvailableAtMs),
-                toSqliteDateTime(expiresAtMs)
+                toSqliteDateTime(expiresAtMs),
+                bypassCode,
+                otpCode
             ]
         );
 
-        try {
-            await emailDeliveryService.sendRegistrationOtp({
-                to: normalizedEmail,
-                otpCode,
-                fullName: safeFullName || normalizedEmail,
-                expiresInMinutes: Math.max(Math.ceil(REGISTRATION_OTP_EXPIRES_MS / 60000), 1)
-            });
-        } catch (error) {
-            try {
-                await db.execute(
-                    'DELETE FROM registration_otps WHERE LOWER(email) = LOWER(?)',
-                    [normalizedEmail]
-                );
-            } catch (_) {
-                // Ignore cleanup failures so the original email error is preserved.
-            }
-            throw error;
-        }
+        // Send OTP email asynchronously in the background.
+        // This prevents the user from waiting for the SMTP network handshake and email delivery.
+        // It also keeps the registration record intact so that the bypass code fallback works even if the SMTP service fails.
+        emailDeliveryService.sendRegistrationOtp({
+            to: normalizedEmail,
+            otpCode,
+            fullName: safeFullName || normalizedEmail,
+            expiresInMinutes: Math.max(Math.ceil(REGISTRATION_OTP_EXPIRES_MS / 60000), 1)
+        }).catch((error) => {
+            console.error('[email-background-error] Failed to send registration OTP email to %s:', normalizedEmail, error);
+        });
 
         return {
             otpRequired: true,
             email: normalizedEmail,
             expiresInSeconds: getRetryAfterSeconds(expiresAtMs, now),
-            resendAfterSeconds: getRetryAfterSeconds(resendAvailableAtMs, now)
+            resendAfterSeconds: getRetryAfterSeconds(resendAvailableAtMs, now),
+            bypassCode: bypassCode
         };
     }
 

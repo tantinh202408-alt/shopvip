@@ -7,6 +7,7 @@ class App {
     constructor() {
         this.router = null;
         this.currentUser = null;
+        this.checkAuthPromise = null;
         this.aiChatOpen = false;
         this.aiChatBusy = false;
         this.notificationPollTimer = null;
@@ -39,17 +40,43 @@ class App {
     async init() {
         try {
             this.initTheme();
-            await this.loadLayout();
-            await this.loadAccountMenuConfig();
-            this.initAiWidget();
-            window.PublicIpManager?.warmup?.();
-            await this.checkAuth();
-            await this.loadStartupImportantNotice();
-            await this.syncLockedFeatures();
+
+            // Khởi chạy đồng thời các tác vụ tải tài nguyên/cấu hình ban đầu để tối ưu tốc độ load
+            const layoutPromise = this.loadLayout();
+            const configPromise = this.loadAccountMenuConfig();
+            const noticePromise = this.loadStartupImportantNotice();
+            const locksPromise = this.syncLockedFeatures();
+
+            // Chờ phần layout chính (header/footer) được đưa vào DOM
+            await layoutPromise;
+
+            // Render phần thông tin người dùng từ localStorage ngay lập tức để giảm thời gian phản hồi giao diện
+            this.updateUserSection();
+
+            // Khởi tạo router và xử lý route ngay để hiển thị trang đích nhanh nhất
             this.initRouter();
             window.router = this.router;
             router = this.router;
-            this.router.handleRoute();
+            const routePromise = this.router.handleRoute();
+
+            // Kiểm tra phiên đăng nhập (auth check) âm thầm dưới background
+            const authPromise = this.checkAuth();
+
+            this.initAiWidget();
+            window.PublicIpManager?.warmup?.();
+
+            // Đợi tất cả cấu hình nền, route và auth check hoàn thành
+            await Promise.all([
+                configPromise,
+                noticePromise,
+                locksPromise,
+                routePromise,
+                authPromise
+            ]);
+
+            // Cập nhật lại giao diện người dùng & menu bên sau khi đã có dữ liệu chính xác từ server
+            this.updateUserSection();
+
             this.startBalanceSync();
             void this.bootstrapAnonymousVisitor();
 
@@ -297,23 +324,32 @@ class App {
     }
 
     async checkAuth() {
+        if (this.checkAuthPromise) {
+            return this.checkAuthPromise;
+        }
+
         if (Auth.isAuthenticated()) {
-            // Always render immediately from localStorage first (fast paint)
             this.updateUserSection();
-            try {
-                // Force-refresh to always get the latest balance/user data from server
-                const response = await api.get('/auth/me', {}, { forceRefresh: true });
-                if (response.success) {
-                    this.currentUser = response.data;
-                    Auth.saveAuth(localStorage.getItem('token'), response.data);
+            this.checkAuthPromise = (async () => {
+                try {
+                    // Force-refresh to always get the latest balance/user data from server
+                    const response = await api.get('/auth/me', {}, { forceRefresh: true });
+                    if (response.success) {
+                        this.currentUser = response.data;
+                        Auth.saveAuth(localStorage.getItem('token'), response.data);
+                        this.updateUserSection();
+                    }
+                } catch (error) {
+                    Auth.clearAuth();
                     this.updateUserSection();
+                } finally {
+                    this.checkAuthPromise = null;
                 }
-            } catch (error) {
-                Auth.clearAuth();
-                this.updateUserSection();
-            }
+            })();
+            return this.checkAuthPromise;
         } else {
             this.updateUserSection();
+            return Promise.resolve();
         }
     }
 
@@ -569,6 +605,7 @@ class App {
             { tab: 'products', label: 'Sản phẩm', icon: 'fas fa-box' },
             { tab: 'categories', label: 'Danh mục', icon: 'fas fa-list' },
             { tab: 'mxh_categories', label: 'Danh mục MXH', icon: 'fas fa-share-nodes' },
+            { tab: 'mxh_services', label: 'Dịch vụ MXH', icon: 'fas fa-bullhorn' },
             { tab: 'posts', label: 'Bài đăng', icon: 'fas fa-newspaper' },
             { tab: 'messages', label: 'Tin nhắn', icon: 'fas fa-comment' },
             { tab: 'support', label: 'Hỗ trợ', icon: 'fas fa-headset' },
@@ -578,6 +615,7 @@ class App {
             { tab: 'logs', label: 'Logs', icon: 'fas fa-file-lines' },
             { tab: 'storage', label: 'Lưu trữ', icon: 'fas fa-database' },
             { tab: 'coupons', label: 'Mã giảm giá', icon: 'fas fa-ticket-simple' },
+            { tab: 'cronjobs', label: 'Cron Jobs', icon: 'fas fa-clock' },
             { tab: 'settings', label: 'Cài đặt', icon: 'fas fa-gear' }
         ];
 
@@ -605,6 +643,12 @@ class App {
                     label: 'Tài khoản MXH',
                     icon: 'fas fa-share-nodes',
                     active: currentPath === '/mxh'
+                },
+                {
+                    href: '/dichvu-mxh',
+                    label: 'Dịch vụ MXH',
+                    icon: 'fas fa-server',
+                    active: currentPath === '/dichvu-mxh'
                 },
                 ...(user && ['admin', 'seller'].includes(user.role) ? [{
                     href: '/banmxh',
@@ -635,6 +679,12 @@ class App {
                     label: 'Email tạm thời',
                     icon: 'fas fa-envelope-open-text',
                     active: currentPath === '/tempmail'
+                },
+                {
+                    href: '/cronjobs',
+                    label: 'Quản lý Cron Jobs',
+                    icon: 'fas fa-clock',
+                    active: currentPath === '/cronjobs'
                 }
             ])}
                 ${(user && ['admin', 'seller'].includes(user.role)) ? buildMenuSection('Thu nhập', [
@@ -1089,7 +1139,9 @@ class App {
             { path: '/mxh', page: '/pages/mxh.html', script: '/js/pages/mxh.js', feature: 'mxh' },
             { path: '/mxh/account/:id', page: '/pages/mxh-account.html', script: '/js/pages/mxh-account.js', auth: true, feature: 'mxh' },
             { path: '/banmxh', page: '/pages/banmxh.html', script: '/js/pages/banmxh.js', role: ['admin', 'seller'], feature: 'mxh' },
-            { path: '/tempmail', page: '/pages/tempmail.html', script: '/js/pages/tempmail.js' }
+            { path: '/dichvu-mxh', page: '/pages/dichvu-mxh.html', script: '/js/pages/dichvu-mxh.js', auth: true, feature: 'mxh' },
+            { path: '/tempmail', page: '/pages/tempmail.html', script: '/js/pages/tempmail.js' },
+            { path: '/cronjobs', page: '/pages/cronjobs.html', script: '/js/pages/cronjobs.js', auth: true }
         ];
         const adminPortalPath = Auth.getAdminPortalPath();
         if (adminPortalPath) {

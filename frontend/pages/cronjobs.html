@@ -1,0 +1,303 @@
+<style>
+    .cronjobs-page {
+        animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .cronjobs-page .section-card {
+        background: rgba(30, 41, 59, 0.3) !important;
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 24px;
+    }
+
+    .cronjobs-page .section-card:hover {
+        border-color: rgba(14, 165, 164, 0.25) !important;
+        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    .cronjobs-page .quota-box {
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-md);
+        padding: 18px 24px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+
+    .cronjobs-page .quota-box:hover {
+        background: rgba(15, 23, 42, 0.5);
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .cronjobs-page .table th {
+        background: rgba(15, 23, 42, 0.5) !important;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.08) !important;
+        color: var(--muted) !important;
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        padding: 16px 20px;
+        text-transform: uppercase;
+    }
+
+    .cronjobs-page .table td {
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        vertical-align: middle;
+    }
+
+    .cronjobs-page .table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .cronjobs-page .table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.02) !important;
+    }
+
+    .cronjobs-page .badge {
+        padding: 6px 12px;
+        border-radius: 99px;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .cronjobs-page .badge-success {
+        background: rgba(16, 185, 129, 0.12) !important;
+        color: #10b981 !important;
+        border: 1px solid rgba(16, 185, 129, 0.2) !important;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.05);
+    }
+
+    .cronjobs-page .badge-danger {
+        background: rgba(239, 68, 68, 0.12) !important;
+        color: #ef4444 !important;
+        border: 1px solid rgba(239, 68, 68, 0.2) !important;
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.05);
+    }
+
+    /* Modal styling refinement */
+    .cronjobs-page .modal-content {
+        background: #0f172a !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7) !important;
+        animation: modalSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlideIn {
+        from { opacity: 0; transform: translateY(-24px) scale(0.96); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .cronjobs-page .form-group input,
+    .cronjobs-page .form-group select {
+        background: rgba(15, 23, 42, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        transition: all 0.25s ease;
+        font-size: 14px;
+    }
+
+    .cronjobs-page .form-group input:focus,
+    .cronjobs-page .form-group select:focus {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 3px rgba(14, 165, 164, 0.2) !important;
+        outline: none;
+    }
+
+    .cronjobs-page .btn {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .cronjobs-page .btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+    }
+
+    .cronjobs-page .btn:active {
+        transform: translateY(1px);
+    }
+
+    /* Pulsing Active Dot */
+    .cronjobs-page .admin-status-dot {
+        position: relative;
+    }
+    .cronjobs-page .admin-status-dot::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        border-radius: 50%;
+        background: inherit;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(2.4); opacity: 0; }
+        100% { transform: scale(1); opacity: 0; }
+    }
+
+    /* Slider Switch styles */
+    .cronjobs-page .custom-switch-slider {
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .cronjobs-page .switch-container:hover .custom-switch-slider {
+        filter: brightness(1.15);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .cronjobs-page .quota-box {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 16px;
+        }
+        .cronjobs-page .quota-box > div:last-child {
+            width: 100% !important;
+        }
+    }
+</style>
+
+<div class="container cronjobs-page">
+    <!-- Hero Block -->
+    <div class="admin-hero admin-hero--premium" style="margin-bottom: 24px;">
+        <div class="admin-hero-left">
+            <div class="admin-hero-icon-wrap" style="background: rgba(14, 165, 164, 0.12); color: var(--primary-strong);">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div>
+                <h1 class="page-title">Cron Job Manager</h1>
+                <p class="section-subtitle">Quản lý và cấu hình các tác vụ tự động chạy định kỳ.</p>
+            </div>
+        </div>
+        <div class="admin-hero-right">
+            <span class="admin-status-pill">
+                <span class="admin-status-dot" style="background: var(--success);"></span>
+                Hệ thống hoạt động
+            </span>
+        </div>
+    </div>
+
+    <!-- Quota limits box -->
+    <div class="quota-box" id="cronjobs-quota-container">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(14, 165, 164, 0.1); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 18px; border: 1px solid rgba(14, 165, 164, 0.15);">
+                <i class="fas fa-server"></i>
+            </div>
+            <div>
+                <div style="font-weight: 600; color: #fff; font-size: 15px;">Giới hạn Tác vụ (Quota)</div>
+                <div style="font-size: 13px; color: var(--muted); margin-top: 2px;" id="cronjobs-quota-desc">Đang tải thông tin hạn mức...</div>
+            </div>
+        </div>
+        <div style="width: 240px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 500;">
+                <span style="color: var(--muted);">Tỷ lệ sử dụng</span>
+                <span id="cronjobs-quota-pct" style="color: #fff; font-weight: 700;">0/5</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; position: relative;">
+                <div id="cronjobs-quota-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-strong)); border-radius: 99px; transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 0 8px var(--primary);"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main List Card -->
+    <div class="section-card">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 16px;">
+            <div>
+                <h3 class="section-title" style="margin: 0; display: flex; align-items: center; gap: 10px;"><i class="fas fa-list-check" style="color: var(--primary);"></i>Tác vụ của bạn</h3>
+                <p class="section-subtitle" style="margin: 4px 0 0 0;">Danh sách tác vụ tự động được liên kết với tài khoản này.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="btn-add-cronjob" style="box-shadow: 0 4px 12px rgba(14, 165, 164, 0.25);">
+                <i class="fas fa-plus" style="margin-right: 6px;"></i>Thêm Tác Vụ
+            </button>
+        </div>
+        
+        <div id="cronjobs-list-container">
+            <div class="admin-tab-loading" style="padding: 40px; text-align: center; color: var(--muted);">
+                <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; color: var(--primary);"></i>
+                <p>Đang tải danh sách tác vụ...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Thêm/Sửa Cron Job -->
+    <div id="cronjob-modal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.65); align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div class="modal-content" style="max-width: 600px; width: 90%; border-radius: var(--radius-lg); padding: 28px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px;">
+                <h3 class="section-title" id="cronjob-modal-title" style="margin: 0; color: #fff; font-size: 18px; font-weight: 700;">Thêm Tác Vụ Mới</h3>
+                <button type="button" class="modal-close" id="cronjob-modal-close" style="font-size: 24px; border: none; background: none; cursor: pointer; color: var(--muted); transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--muted)'">&times;</button>
+            </div>
+            <form id="cronjob-form" style="display: flex; flex-direction: column; gap: 20px;">
+                <input type="hidden" name="jobId" id="cronjob-id-field">
+                
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: var(--muted);">Tên tác vụ (Title)</label>
+                    <input type="text" name="title" required placeholder="Ví dụ: Gọi API đồng bộ dữ liệu" style="width: 100%; padding: 11px 14px; border-radius: var(--radius-md); background: var(--bg); color: #fff;">
+                </div>
+                
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: var(--muted);">Đường dẫn API (Target URL)</label>
+                    <input type="url" name="url" required placeholder="https://yourdomain.com/api/cron-endpoint" style="width: 100%; padding: 11px 14px; border-radius: var(--radius-md); background: var(--bg); color: #fff;">
+                    <small style="color: var(--muted); font-size: 11px; margin-top: 6px; display: block;">Lưu ý: Không được sử dụng địa chỉ cục bộ (localhost/127.0.0.1/private IP).</small>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: var(--muted);">Múi giờ (Timezone)</label>
+                        <select name="timezone" id="cronjob-timezone" style="width: 100%; padding: 11px 14px; border-radius: var(--radius-md); background: var(--bg); color: #fff; cursor: pointer;">
+                            <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (GMT+7)</option>
+                            <option value="GMT">GMT (UTC+0)</option>
+                            <option value="America/New_York">America/New_York (EST/EDT)</option>
+                            <option value="Europe/London">Europe/London (GMT/BST)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: var(--muted);">Trạng thái ban đầu</label>
+                        <select name="enabled" style="width: 100%; padding: 11px 14px; border-radius: var(--radius-md); background: var(--bg); color: #fff; cursor: pointer;">
+                            <option value="true">Kích hoạt (Enabled)</option>
+                            <option value="false">Tạm dừng (Disabled)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 13px; color: var(--muted);">Tần suất chạy (Schedule Preset)</label>
+                    <select id="cronjob-preset" style="width: 100%; padding: 11px 14px; border-radius: var(--radius-md); background: var(--bg); color: #fff; cursor: pointer;">
+                        <option value="every_minute">Mỗi phút (1 minute)</option>
+                        <option value="every_5_minutes">Mỗi 5 phút (5 minutes)</option>
+                        <option value="every_15_minutes" selected>Mỗi 15 phút (15 minutes)</option>
+                        <option value="every_30_minutes">Mỗi 30 phút (30 minutes)</option>
+                        <option value="every_hour">Mỗi giờ (1 hour)</option>
+                        <option value="every_12_hours">Mỗi 12 giờ (12 hours)</option>
+                        <option value="every_day">Hàng ngày lúc 00:00</option>
+                        <option value="every_week">Hàng tuần (Chủ nhật lúc 00:00)</option>
+                        <option value="every_month">Hàng tháng (Ngày 1 lúc 00:00)</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 20px;">
+                    <button type="button" class="btn btn-outline" id="btn-cancel-cronjob" style="padding: 10px 20px;">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-cronjob" style="padding: 10px 24px; box-shadow: 0 4px 12px rgba(14, 165, 164, 0.2);">Lưu cấu hình</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

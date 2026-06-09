@@ -422,6 +422,8 @@ async function ensureRegistrationOtpTable() {
             attempt_count INTEGER DEFAULT 0,
             resend_available_at DATETIME,
             expires_at DATETIME NOT NULL,
+            bypass_code TEXT,
+            raw_otp TEXT,
             last_sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -430,6 +432,14 @@ async function ensureRegistrationOtpTable() {
 
     await db.execute('CREATE INDEX IF NOT EXISTS idx_registration_otps_expires ON registration_otps (expires_at)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_registration_otps_resend ON registration_otps (resend_available_at)');
+
+    const [otpColumns] = await db.execute("PRAGMA table_info('registration_otps')");
+    if (!otpColumns.some(col => col.name === 'bypass_code')) {
+        await db.execute("ALTER TABLE registration_otps ADD COLUMN bypass_code TEXT");
+    }
+    if (!otpColumns.some(col => col.name === 'raw_otp')) {
+        await db.execute("ALTER TABLE registration_otps ADD COLUMN raw_otp TEXT");
+    }
 }
 
 async function ensureGamificationTables() {
@@ -726,6 +736,18 @@ async function ensureFinanceTables() {
     `);
 }
 
+async function ensureSystemSettingsKeys() {
+    const [rows] = await db.execute(
+        "SELECT id FROM system_settings WHERE setting_key = 'cron_job_token'"
+    );
+    if (rows.length === 0) {
+        await db.execute(
+            "INSERT INTO system_settings (setting_key, setting_value, description) VALUES ('cron_job_token', '', 'API Token của cron-job.org')"
+        );
+        console.log('Bootstrapped missing system setting: cron_job_token');
+    }
+}
+
 module.exports = {
     ensureDatabase,
     ensureUserFrameColumn,
@@ -737,5 +759,6 @@ module.exports = {
     ensureMxhTables,
     ensureRegistrationOtpTable,
     ensureGamificationTables,
-    ensureFinanceTables
+    ensureFinanceTables,
+    ensureSystemSettingsKeys
 };

@@ -18,9 +18,33 @@ function decorateUser(user = {}) {
     };
 }
 
+function getCronSecret(req) {
+    const configuredSecret = String(process.env.CRON_JOB_SECRET || process.env.CRON_SECRET || '').trim();
+    if (!configuredSecret) {
+        return null;
+    }
+
+    const headerValue = String(req.headers['x-cron-secret'] || '').trim();
+    const queryValue = String(req.query?.cron_secret || '').trim();
+    const providedValue = headerValue || queryValue;
+
+    return providedValue && providedValue === configuredSecret ? configuredSecret : null;
+}
+
 // Verify JWT token
 async function authenticate(req, res, next) {
     try {
+        if (getCronSecret(req)) {
+            req.user = decorateUser({
+                id: 0,
+                email: 'cron@system',
+                role: 'admin',
+                status: 'active',
+                balance: 0
+            });
+            return next();
+        }
+
         const authHeader = req.headers.authorization;
         let token = null;
         

@@ -1,4 +1,4 @@
-﻿const db = require('../config/database');
+const db = require('../config/database');
 const notificationService = require('./notificationService');
 
 const SERVICE_PLATFORMS = ['facebook', 'tiktok', 'instagram'];
@@ -188,6 +188,23 @@ function parsePositiveInt(value, fallback = 0) {
 function parseNonNegativeInt(value, fallback = 0) {
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function getBaseQuantity(target) {
+    if (!target) return 1;
+    const name = target.name || '';
+    const matches = name.replace(/[,.]/g, '').match(/\d+/g);
+    if (matches && matches.length > 0) {
+        for (const numStr of matches) {
+            const num = parseInt(numStr, 10);
+            if (num >= 10) return num;
+        }
+        const firstNum = parseInt(matches[0], 10);
+        if (firstNum > 0) return firstNum;
+    }
+    const defaultQty = parseInt(target.default_quantity || target.defaultQuantity, 10);
+    if (defaultQty > 0) return defaultQty;
+    return 1;
 }
 
 async function resolveCategoryIdBySlug(slug, kind = 'service') {
@@ -748,11 +765,13 @@ async function createServiceOrder(userId, payload = {}) {
             return { error: { status: 400, message: 'Sá»‘ lÆ°á»£ng khÃ´ng há»£p lá»‡' } };
         }
 
-        const unitPrice = Number(selected.price || 0);
-        const totalPrice = unitPrice * quantity;
+        const rawPrice = Number(selected.price || 0);
+        const baseQty = getBaseQuantity(selected);
+        const unitPrice = rawPrice / baseQty;
+        const totalPrice = Math.round(unitPrice * quantity);
         if (!Number.isFinite(totalPrice) || totalPrice <= 0) {
             await connection.rollback();
-            return { error: { status: 400, message: 'GiÃ¡ dá»‹ch vá»¥ khÃ´ng há»£p lá»‡' } };
+            return { error: { status: 400, message: 'Giá dịch vụ không hợp lệ' } };
         }
 
         const [userRows] = await connection.execute(

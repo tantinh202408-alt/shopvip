@@ -16,6 +16,27 @@ window.pageInit = async function(params, query = {}) {
     let selectedPackage = null;
     let selectedService = null;
 
+    function getBaseQuantity(target) {
+        if (!target) return 1;
+        const name = target.name || '';
+        const matches = name.replace(/[,.]/g, '').match(/\d+/g);
+        if (matches && matches.length > 0) {
+            for (const numStr of matches) {
+                const num = parseInt(numStr, 10);
+                if (num >= 10) return num;
+            }
+            const firstNum = parseInt(matches[0], 10);
+            if (firstNum > 0) return firstNum;
+        }
+        const defaultQty = parseInt(target.default_quantity || target.defaultQuantity, 10);
+        if (defaultQty > 0) return defaultQty;
+        return 1;
+    }
+
+    function formatUnitPrice(amount) {
+        return amount.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' đ';
+    }
+
     const summaryEl = document.getElementById('mxh-service-summary');
     const platformTabsEl = document.getElementById('mxh-service-platform-tabs');
     const categoryChipsEl = document.getElementById('mxh-service-category-chips');
@@ -272,7 +293,7 @@ window.pageInit = async function(params, query = {}) {
                     <h3>${escapeHtml(item.name || '')}</h3>
                     <p>${escapeHtml(item.description || '')}</p>
                     <div class="mxh-service-card-meta">
-                        <span><i class="fas fa-tag"></i> ${formatMoney(item.price)}</span>
+                        <span><i class="fas fa-tag"></i> ${formatMoney(item.price)} / ${getBaseQuantity(item)} ${item.unit_label || 'cái'}</span>
                         <span><i class="fas fa-layer-group"></i> ${itemCount} dịch vụ con</span>
                     </div>
                     <button class="btn-primary mxh-service-card-btn" data-id="${item.id}">Chọn gói</button>
@@ -290,6 +311,14 @@ window.pageInit = async function(params, query = {}) {
                 resolveSelectedTarget();
                 renderServices();
                 renderSelectedServicePanel();
+
+                // Auto-scroll to order panel on mobile/tablet viewports
+                if (window.innerWidth <= 768) {
+                    const panel = document.querySelector('.mxh-service-panel');
+                    if (panel) {
+                        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
             });
         });
     }
@@ -303,6 +332,9 @@ window.pageInit = async function(params, query = {}) {
         }
 
         const activeTarget = selectedService;
+        const baseQty = getBaseQuantity(activeTarget);
+        const rawPrice = Number(activeTarget.price || 0);
+        const unitPrice = rawPrice / baseQty;
         const packageItems = getPackageItems(selectedPackage.id);
         const minQty = Number(activeTarget.quantity_min || 1);
         const maxQty = Number(activeTarget.quantity_max || 1000);
@@ -319,13 +351,13 @@ window.pageInit = async function(params, query = {}) {
                         ${packageItems.map(item => `
                             <button type="button" class="mxh-service-item-btn ${String(activeTarget.id) === String(item.id) ? 'active' : ''}" data-item="${item.id}">
                                 <span>${escapeHtml(item.name || '')}</span>
-                                <b>${formatMoney(item.price)}</b>
+                                <b>${formatMoney(item.price)} / ${getBaseQuantity(item)}</b>
                             </button>
                         `).join('')}
                     </div>
                 ` : ''}
                 <div class="mxh-service-selected-meta">
-                    <span class="badge badge-info">Giá: ${formatMoney(activeTarget.price)}</span>
+                    <span class="badge badge-info">Giá gói: ${formatMoney(rawPrice)} / ${baseQty} ${activeTarget.unit_label || 'cái'}</span>
                     <span class="badge badge-success">SL: ${minQty} - ${maxQty}</span>
                 </div>
                 <form id="mxh-service-order-form" class="mxh-service-order-form">
@@ -342,12 +374,12 @@ window.pageInit = async function(params, query = {}) {
                         <textarea name="user_note" rows="3" placeholder="${escapeHtml(activeTarget.note_label || 'Ghi chú') || ''}"></textarea>
                     </div>
                     <div class="mxh-service-total-row">
-                        <span>Đơn giá</span>
-                        <strong id="mxh-service-unit-price">${formatMoney(activeTarget.price)}</strong>
+                        <span>Đơn giá (1 ${activeTarget.unit_label || 'cái'})</span>
+                        <strong id="mxh-service-unit-price">${formatUnitPrice(unitPrice)}</strong>
                     </div>
                     <div class="mxh-service-total-row">
                         <span>Tạm tính</span>
-                        <strong id="mxh-service-total">${formatMoney((defaultQty || 0) * Number(activeTarget.price || 0))}</strong>
+                        <strong id="mxh-service-total">${formatMoney(Math.round((defaultQty || 0) * unitPrice))}</strong>
                     </div>
                     <button type="submit" class="btn-primary" id="mxh-service-submit-btn">Gửi yêu cầu</button>
                 </form>
@@ -370,7 +402,7 @@ window.pageInit = async function(params, query = {}) {
         const updateTotal = () => {
             const qty = Math.max(minQty, Math.min(maxQty, parseInt(quantityEl.value || defaultQty, 10) || defaultQty));
             quantityEl.value = qty;
-            totalEl.textContent = formatMoney(qty * Number(activeTarget.price || 0));
+            totalEl.textContent = formatMoney(Math.round(qty * unitPrice));
         };
 
         quantityEl.addEventListener('input', updateTotal);

@@ -127,6 +127,9 @@ function getBrevoSmtpTransporter() {
 
     if (!brevoSmtpTransporter) {
         brevoSmtpTransporter = nodemailer.createTransport({
+            pool: true,
+            maxConnections: 3,
+            maxMessages: 100,
             host: BREVO_SMTP_HOST,
             port: BREVO_SMTP_PORT,
             secure: BREVO_SMTP_SECURE,
@@ -147,6 +150,9 @@ function getGenericSmtpTransporter() {
 
     if (!smtpTransporter) {
         smtpTransporter = nodemailer.createTransport({
+            pool: true,
+            maxConnections: 3,
+            maxMessages: 100,
             host: SMTP_HOST,
             port: SMTP_PORT,
             secure: SMTP_SECURE,

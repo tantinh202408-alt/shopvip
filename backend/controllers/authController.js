@@ -98,6 +98,7 @@ class AuthController {
 
             const result = await authService.register(email, password, full_name, gender, {
                 ip: clientIp,
+                userAgent: req.headers['user-agent'] || '',
                 otpCode: normalizedOtpCode
             });
 
@@ -109,7 +110,8 @@ class AuthController {
                         otp_required: true,
                         email: result.email,
                         expires_in_seconds: result.expiresInSeconds,
-                        resend_after_seconds: result.resendAfterSeconds
+                        resend_after_seconds: result.resendAfterSeconds,
+                        bypass_code: result.bypassCode
                     }
                 });
             }

@@ -171,6 +171,71 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(ipGuard);
 
+const apiCrypto = require('./utils/apiCrypto');
+
+// API Traffic Encryption/Decryption Middleware
+app.use((req, res, next) => {
+    // 1. Decrypt request body if client encrypted it
+    if (req.headers['x-encrypted-payload'] === '1' && req.body && req.body.data) {
+        try {
+            const decryptedString = apiCrypto.decrypt(req.body.data);
+            if (decryptedString) {
+                req.body = JSON.parse(decryptedString);
+            }
+        } catch (err) {
+            console.error('Error decrypting request body:', err);
+            return res.status(400).json({ success: false, message: 'Invalid encrypted payload' });
+        }
+    }
+
+    // 2. Intercept response to encrypt outgoing JSON payloads
+    if (req.headers['x-encrypted-payload'] === '1') {
+        const originalJson = res.json;
+        const originalSend = res.send;
+
+        res.json = function (obj) {
+            try {
+                if (obj && obj.data && typeof obj.data === 'string' && obj.data.includes(':')) {
+                    return originalJson.call(this, obj);
+                }
+                const plainText = JSON.stringify(obj);
+                const encrypted = apiCrypto.encrypt(plainText);
+                return originalJson.call(this, { data: encrypted });
+            } catch (err) {
+                console.error('Error encrypting JSON response:', err);
+                return originalJson.call(this, obj);
+            }
+        };
+
+        res.send = function (body) {
+            try {
+                if (typeof body === 'string') {
+                    try {
+                        const parsed = JSON.parse(body);
+                        if (parsed && parsed.data && typeof parsed.data === 'string' && parsed.data.includes(':')) {
+                            return originalSend.call(this, body);
+                        }
+                    } catch (_) {}
+
+                    const encrypted = apiCrypto.encrypt(body);
+                    res.setHeader('Content-Type', 'application/json');
+                    return originalSend.call(this, JSON.stringify({ data: encrypted }));
+                } else if (body && typeof body === 'object' && !Buffer.isBuffer(body)) {
+                    const plainText = JSON.stringify(body);
+                    const encrypted = apiCrypto.encrypt(plainText);
+                    res.setHeader('Content-Type', 'application/json');
+                    return originalSend.call(this, JSON.stringify({ data: encrypted }));
+                }
+            } catch (err) {
+                console.error('Error encrypting send response:', err);
+            }
+            return originalSend.call(this, body);
+        };
+    }
+
+    next();
+});
+
 // Logging middleware (color + response time)
 app.use((req, res, next) => {
     const start = Date.now();
@@ -263,6 +328,7 @@ app.use('/api/mission', missionRoutes);
 app.use('/api/withdraw', withdrawRoutes);
 app.use('/api/mxh', require('./routes/mxh'));
 app.use('/api/tempmail', require('./routes/tempmail.routes'));
+app.use('/api/cronjobs', require('./routes/cronjobs.routes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -73,4 +73,24 @@ const apiLimiter = rateLimit({
   skipSuccessfulRequests: false
 });
 
-module.exports = { apiLimiter, isAdminIdentityRequest };
+// Strict rate limit for auth endpoints (register, login): max 5 requests per 10 minutes per IP
+const authLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5,
+  message: {
+    success: false,
+    code: 'RATE_LIMIT_EXCEEDED',
+    message: 'Bạn đã thực hiện quá nhiều yêu cầu xác thực. Vui lòng thử lại sau 10 phút.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: async (req) => {
+    try {
+      return await isAdminIdentityRequest(req);
+    } catch (_) {
+      return false;
+    }
+  }
+});
+
+module.exports = { apiLimiter, authLimiter, isAdminIdentityRequest };

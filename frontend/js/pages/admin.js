@@ -24,7 +24,8 @@ window.pageInit = async function(params, query = {}) {
         storage: loadStorage,
         mxh_services: loadMxhServices,
         settings: loadSettings,
-        coupons: loadCoupons
+        coupons: loadCoupons,
+        cronjobs: loadCronJobs
     };
 
     async function loadActiveTab(tab = 'dashboard') {
@@ -76,6 +77,7 @@ window.pageInit = async function(params, query = {}) {
             'mxh_categories',
             'mxh_services',
             'coupons',
+            'cronjobs',
             'settings'
         ]);
 
@@ -4755,5 +4757,472 @@ window.pageInit = async function(params, query = {}) {
             }
         } catch (error) {
             container.innerHTML = '<p>Không thể tải danh sách mã giảm giá.</p>';
+        }
+    }
+
+    async function loadCronJobs() {
+        const container = document.getElementById('tab-cronjobs');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="section-card">
+                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div>
+                        <h3 class="section-title" style="margin: 0;"><i class="fas fa-clock" style="margin-right: 8px; color: var(--primary);"></i>Quản lý Cron Jobs</h3>
+                        <p class="section-subtitle" style="margin: 4px 0 0 0;">Quản lý các tác vụ chạy định kỳ thông qua API của cron-job.org</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btn-add-cronjob">
+                        <i class="fas fa-plus" style="margin-right: 6px;"></i>Thêm Tác Vụ
+                    </button>
+                </div>
+                
+                <div id="cronjobs-list-container">
+                    <div class="admin-tab-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Đang tải danh sách cron jobs...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Thêm/Sửa Cron Job -->
+            <div id="cronjob-modal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+                <div class="modal-content" style="max-width: 600px; width: 90%; border-radius: var(--radius-lg); background: var(--surface); padding: 24px; box-shadow: var(--shadow-lg); border: 1px solid var(--border);">
+                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                        <h3 class="section-title" id="cronjob-modal-title" style="margin: 0; color: #fff;">Thêm Cron Job Mới</h3>
+                        <button type="button" class="modal-close" id="cronjob-modal-close" style="font-size: 24px; border: none; background: none; cursor: pointer; color: var(--muted);">&times;</button>
+                    </div>
+                    <form id="cronjob-form" style="display: flex; flex-direction: column; gap: 16px;">
+                        <input type="hidden" name="jobId" id="cronjob-id-field">
+                        
+                        <div class="form-group">
+                            <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 13px; color: var(--muted);">Tên tác vụ (Title)</label>
+                            <input type="text" name="title" required placeholder="Ví dụ: Cập nhật giá dịch vụ MXH" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: #fff;">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 13px; color: var(--muted);">Đường dẫn API (Target URL)</label>
+                            <input type="url" name="url" required placeholder="https://domain.com/api/mxh/sync-orders" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: #fff;">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div class="form-group">
+                                <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 13px; color: var(--muted);">Múi giờ (Timezone)</label>
+                                <select name="timezone" id="cronjob-timezone" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: #fff;">
+                                    <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (GMT+7)</option>
+                                    <option value="GMT">GMT (UTC+0)</option>
+                                    <option value="America/New_York">America/New_York (EST/EDT)</option>
+                                    <option value="Europe/London">Europe/London (GMT/BST)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 13px; color: var(--muted);">Trạng thái</label>
+                                <select name="enabled" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: #fff;">
+                                    <option value="true">Kích hoạt (Enabled)</option>
+                                    <option value="false">Tạm dừng (Disabled)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 13px; color: var(--muted);">Tần suất chạy (Schedule Preset)</label>
+                            <select id="cronjob-preset" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: #fff;">
+                                <option value="every_minute">Mỗi phút (1 minute)</option>
+                                <option value="every_5_minutes">Mỗi 5 phút (5 minutes)</option>
+                                <option value="every_15_minutes" selected>Mỗi 15 phút (15 minutes)</option>
+                                <option value="every_30_minutes">Mỗi 30 phút (30 minutes)</option>
+                                <option value="every_hour">Mỗi giờ (1 hour)</option>
+                                <option value="every_12_hours">Mỗi 12 giờ (12 hours)</option>
+                                <option value="every_day">Hàng ngày lúc 00:00</option>
+                                <option value="every_week">Hàng tuần (Chủ nhật lúc 00:00)</option>
+                                <option value="every_month">Hàng tháng (Ngày 1 lúc 00:00)</option>
+                            </select>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 16px;">
+                            <button type="button" class="btn btn-outline" id="btn-cancel-cronjob">Hủy</button>
+                            <button type="submit" class="btn btn-primary" id="btn-save-cronjob">Lưu cấu hình</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        // Bind events
+        const btnAdd = document.getElementById('btn-add-cronjob');
+        const btnClose = document.getElementById('cronjob-modal-close');
+        const btnCancel = document.getElementById('btn-cancel-cronjob');
+        const form = document.getElementById('cronjob-form');
+
+        if (btnAdd) btnAdd.onclick = () => showCronJobModal();
+        if (btnClose) btnClose.onclick = () => hideCronJobModal();
+        if (btnCancel) btnCancel.onclick = () => hideCronJobModal();
+        if (form) form.onsubmit = handleFormSubmit;
+
+        window.onclick = (e) => {
+            const modal = document.getElementById('cronjob-modal');
+            if (e.target === modal) {
+                hideCronJobModal();
+            }
+        };
+
+        await fetchAndRenderCronJobs();
+    }
+
+    function buildScheduleFromPreset(preset, timezone) {
+        const schedule = {
+            timezone: timezone || 'Asia/Ho_Chi_Minh',
+            minutes: [0],
+            hours: [-1],
+            mdays: [-1],
+            months: [-1],
+            wdays: [-1]
+        };
+
+        if (preset === 'every_minute') {
+            schedule.minutes = [-1];
+        } else if (preset === 'every_5_minutes') {
+            schedule.minutes = Array.from({ length: 12 }, (_, i) => i * 5);
+        } else if (preset === 'every_15_minutes') {
+            schedule.minutes = [0, 15, 30, 45];
+        } else if (preset === 'every_30_minutes') {
+            schedule.minutes = [0, 30];
+        } else if (preset === 'every_hour') {
+            schedule.minutes = [0];
+        } else if (preset === 'every_12_hours') {
+            schedule.minutes = [0];
+            schedule.hours = [0, 12];
+        } else if (preset === 'every_day') {
+            schedule.minutes = [0];
+            schedule.hours = [0];
+        } else if (preset === 'every_week') {
+            schedule.minutes = [0];
+            schedule.hours = [0];
+            schedule.wdays = [0];
+        } else if (preset === 'every_month') {
+            schedule.minutes = [0];
+            schedule.hours = [0];
+            schedule.mdays = [1];
+        }
+
+        return schedule;
+    }
+
+    function detectPresetFromSchedule(schedule) {
+        if (!schedule) return 'every_15_minutes';
+        
+        const m = schedule.minutes || [];
+        const h = schedule.hours || [];
+        const md = schedule.mdays || [];
+        const wd = schedule.wdays || [];
+
+        if (m.length === 1 && m[0] === -1) return 'every_minute';
+        if (m.length === 12 && m.includes(5)) return 'every_5_minutes';
+        if (m.length === 4 && m.includes(15)) return 'every_15_minutes';
+        if (m.length === 2 && m.includes(30)) return 'every_30_minutes';
+        if (m.length === 1 && m[0] === 0) {
+            if (h.length === 1 && h[0] === -1) return 'every_hour';
+            if (h.length === 2 && h.includes(12)) return 'every_12_hours';
+            if (h.length === 1 && h[0] === 0) {
+                if (wd.length === 1 && wd[0] === 0) return 'every_week';
+                if (md.length === 1 && md[0] === 1) return 'every_month';
+                return 'every_day';
+            }
+        }
+
+        return 'every_15_minutes';
+    }
+
+    async function fetchAndRenderCronJobs() {
+        const container = document.getElementById('cronjobs-list-container');
+        if (!container) return;
+
+        try {
+            const res = await api.get('/admin/cronjobs');
+            if (res.success && res.data && res.data.jobs) {
+                renderCronJobsList(res.data.jobs);
+            } else {
+                container.innerHTML = `
+                    <div class="admin-empty-state" style="padding: 40px; text-align: center;">
+                        <i class="fas fa-exclamation-circle" style="font-size: 48px; color: var(--muted); margin-bottom: 12px;"></i>
+                        <h4>Không thể tải danh sách cron jobs</h4>
+                        <p>${res.message || 'Lỗi không xác định khi truy cập API.'}</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            container.innerHTML = `
+                <div class="admin-empty-state" style="padding: 40px; text-align: center;">
+                    <i class="fas fa-triangle-exclamation" style="font-size: 48px; color: var(--danger); margin-bottom: 12px;"></i>
+                    <h4>Lỗi hệ thống</h4>
+                    <p>${error.message || 'Không thể kết nối đến server.'}</p>
+                </div>
+            `;
+        }
+    }
+
+    function renderCronJobsList(jobs) {
+        const container = document.getElementById('cronjobs-list-container');
+        if (!container) return;
+
+        if (!jobs || jobs.length === 0) {
+            container.innerHTML = `
+                <div class="admin-empty-state" style="padding: 40px; text-align: center;">
+                    <i class="fas fa-folder-open" style="font-size: 48px; color: var(--muted); margin-bottom: 12px;"></i>
+                    <h4>Chưa có tác vụ cron job nào</h4>
+                    <p>Hãy nhấn nút "Thêm Tác Vụ" để tạo tác vụ cron job đầu tiên của bạn.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const formatUnixTime = (timestamp) => {
+            if (!timestamp) return 'Chưa chạy';
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString('vi-VN');
+        };
+
+        const getStatusBadge = (status) => {
+            if (status === 200) {
+                return '<span class="badge badge-success" style="font-weight: 600;"><i class="fas fa-circle-check" style="margin-right: 4px;"></i>200 OK</span>';
+            }
+            if (status > 0) {
+                return `<span class="badge badge-danger" style="font-weight: 600;"><i class="fas fa-circle-xmark" style="margin-right: 4px;"></i>Lỗi ${status}</span>`;
+            }
+            return '<span class="badge badge-outline" style="font-weight: 600; color: var(--muted); border-color: var(--border);"><i class="fas fa-clock" style="margin-right: 4px;"></i>Chờ chạy</span>';
+        };
+
+        const getScheduleLabel = (preset) => {
+            const labels = {
+                every_minute: 'Mỗi phút',
+                every_5_minutes: 'Mỗi 5 phút',
+                every_15_minutes: 'Mỗi 15 phút',
+                every_30_minutes: 'Mỗi 30 phút',
+                every_hour: 'Mỗi giờ',
+                every_12_hours: 'Mỗi 12 giờ',
+                every_day: 'Hàng ngày',
+                every_week: 'Hàng tuần',
+                every_month: 'Hàng tháng'
+            };
+            return labels[preset] || 'Tùy chỉnh';
+        };
+
+        container.innerHTML = `
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Tên tác vụ</th>
+                            <th>Đường dẫn (URL)</th>
+                            <th>Tần suất</th>
+                            <th>Lần chạy cuối</th>
+                            <th>Kết quả</th>
+                            <th style="text-align: center;">Kích hoạt</th>
+                            <th style="text-align: right;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${jobs.map(job => {
+                            const preset = detectPresetFromSchedule(job.schedule);
+                            let titleHtml = escapeHtml(job.title || `Job #${job.jobId}`);
+                            const match = String(job.title || '').match(/^\[User #(\d+)\] (.*)$/);
+                            if (match) {
+                                const userId = match[1];
+                                const cleanTitle = match[2];
+                                titleHtml = `<span class="badge badge-outline" style="border-color: var(--primary); color: var(--primary); font-size: 10px; margin-right: 6px; padding: 2px 6px; display: inline-flex; align-items: center;"><i class="fas fa-user" style="margin-right: 4px; font-size: 9px;"></i>User #${userId}</span><strong>${escapeHtml(cleanTitle)}</strong>`;
+                            } else {
+                                titleHtml = `<span class="badge badge-outline" style="border-color: var(--warning); color: var(--warning); font-size: 10px; margin-right: 6px; padding: 2px 6px; display: inline-flex; align-items: center;"><i class="fas fa-shield-halved" style="margin-right: 4px; font-size: 9px;"></i>System</span><strong>${titleHtml}</strong>`;
+                            }
+                            return `
+                                <tr data-job-id="${job.jobId}">
+                                    <td>${titleHtml}</td>
+                                    <td><code style="word-break: break-all; font-size: 12px; color: var(--primary);">${escapeHtml(job.url)}</code></td>
+                                    <td>
+                                        <div style="font-weight: 500;">${getScheduleLabel(preset)}</div>
+                                        <small style="color: var(--muted); font-size: 11px;">${job.schedule?.timezone || 'GMT'}</small>
+                                    </td>
+                                    <td><span style="font-size: 13px; color: var(--muted);">${formatUnixTime(job.lastExecution)}</span></td>
+                                    <td>${getStatusBadge(job.lastStatus)}</td>
+                                    <td style="text-align: center;">
+                                        <label class="switch-container" style="display: inline-flex; align-items: center; cursor: pointer; position: relative;">
+                                            <input type="checkbox" class="cronjob-toggle-status" data-job-id="${job.jobId}" ${job.enabled ? 'checked' : ''} style="display: none;">
+                                            <span class="custom-switch-slider" style="width: 44px; height: 22px; background: ${job.enabled ? 'var(--success)' : '#475569'}; border-radius: 999px; display: block; position: relative; transition: all 0.3s ease;">
+                                                <span style="width: 16px; height: 16px; background: #ffffff; border-radius: 50%; display: block; position: absolute; top: 3px; left: ${job.enabled ? '25px' : '3px'}; transition: all 0.3s ease;"></span>
+                                            </span>
+                                        </label>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                                            <button type="button" class="btn btn-outline btn-sm cronjob-edit-btn" data-job-id="${job.jobId}" title="Chỉnh sửa">
+                                                <i class="fas fa-edit" style="margin-right: 4px;"></i>Sửa
+                                            </button>
+                                            <button type="button" class="btn btn-danger-outline btn-sm cronjob-delete-btn" data-job-id="${job.jobId}" title="Xóa">
+                                                <i class="fas fa-trash-can" style="margin-right: 4px;"></i>Xóa
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        // Bind Switch toggler click events
+        container.querySelectorAll('.cronjob-toggle-status').forEach(checkbox => {
+            const slider = checkbox.nextElementSibling;
+            slider.onclick = async (e) => {
+                e.preventDefault();
+                const jobId = checkbox.dataset.jobId;
+                const isCurrentlyEnabled = checkbox.checked;
+                await toggleJobStatus(jobId, !isCurrentlyEnabled);
+            };
+        });
+
+        // Bind edit click events
+        container.querySelectorAll('.cronjob-edit-btn').forEach(btn => {
+            btn.onclick = () => {
+                const jobId = btn.dataset.jobId;
+                const job = jobs.find(j => String(j.jobId) === String(jobId));
+                if (job) {
+                    showCronJobModal(job);
+                }
+            };
+        });
+
+        // Bind delete click events
+        container.querySelectorAll('.cronjob-delete-btn').forEach(btn => {
+            btn.onclick = async () => {
+                const jobId = btn.dataset.jobId;
+                const job = jobs.find(j => String(j.jobId) === String(jobId));
+                if (confirm(`Bạn chắc chắn muốn xóa tác vụ "${job?.title || jobId}"?`)) {
+                    await deleteCronJob(jobId);
+                }
+            };
+        });
+    }
+
+    async function toggleJobStatus(jobId, enable) {
+        showToast('Đang cập nhật trạng thái...', 'info');
+        try {
+            const res = await api.request(`/admin/cronjobs/${jobId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    job: {
+                        enabled: enable
+                    }
+                })
+            });
+            if (res.success) {
+                showToast('Đã cập nhật trạng thái tác vụ', 'success');
+                await fetchAndRenderCronJobs();
+            } else {
+                showToast(res.message || 'Cập nhật thất bại', 'error');
+            }
+        } catch (error) {
+            showToast(error.message || 'Lỗi kết nối', 'error');
+        }
+    }
+
+    async function deleteCronJob(jobId) {
+        showToast('Đang xóa tác vụ...', 'info');
+        try {
+            const res = await api.delete(`/admin/cronjobs/${jobId}`);
+            if (res.success) {
+                showToast('Đã xóa tác vụ thành công', 'success');
+                await fetchAndRenderCronJobs();
+            } else {
+                showToast(res.message || 'Xóa tác vụ thất bại', 'error');
+            }
+        } catch (error) {
+            showToast(error.message || 'Lỗi kết nối', 'error');
+        }
+    }
+
+    function showCronJobModal(job = null) {
+        const modal = document.getElementById('cronjob-modal');
+        const form = document.getElementById('cronjob-form');
+        const titleField = document.getElementById('cronjob-modal-title');
+        const idField = document.getElementById('cronjob-id-field');
+        const timezoneSelect = document.getElementById('cronjob-timezone');
+        const presetSelect = document.getElementById('cronjob-preset');
+
+        if (!modal || !form) return;
+
+        form.reset();
+
+        if (job) {
+            titleField.textContent = 'Chỉnh Sửa Tác Vụ';
+            idField.value = job.jobId;
+            form.title.value = job.title;
+            form.url.value = job.url;
+            form.enabled.value = job.enabled ? 'true' : 'false';
+            
+            if (job.schedule) {
+                timezoneSelect.value = job.schedule.timezone || 'Asia/Ho_Chi_Minh';
+                presetSelect.value = detectPresetFromSchedule(job.schedule);
+            }
+        } else {
+            titleField.textContent = 'Thêm Tác Vụ Mới';
+            idField.value = '';
+            timezoneSelect.value = 'Asia/Ho_Chi_Minh';
+            presetSelect.value = 'every_15_minutes';
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function hideCronJobModal() {
+        const modal = document.getElementById('cronjob-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const jobId = form.jobId.value;
+        const title = form.title.value.trim();
+        const url = form.url.value.trim();
+        const enabled = form.enabled.value === 'true';
+        const timezone = form.timezone.value;
+        const preset = document.getElementById('cronjob-preset').value;
+
+        const schedule = buildScheduleFromPreset(preset, timezone);
+
+        const payload = {
+            job: {
+                title,
+                url,
+                enabled,
+                saveResponses: true,
+                schedule
+            }
+        };
+
+        showToast('Đang lưu cấu hình...', 'info');
+        try {
+            let res;
+            if (jobId) {
+                res = await api.request(`/admin/cronjobs/${jobId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                res = await api.request('/admin/cronjobs', {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+            }
+
+            if (res.success) {
+                showToast(jobId ? 'Đã cập nhật tác vụ thành công' : 'Đã tạo tác vụ mới thành công', 'success');
+                hideCronJobModal();
+                await fetchAndRenderCronJobs();
+            } else {
+                showToast(res.message || 'Lưu cấu hình thất bại', 'error');
+            }
+        } catch (error) {
+            showToast(error.message || 'Lỗi kết nối', 'error');
         }
     }

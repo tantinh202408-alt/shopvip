@@ -414,18 +414,28 @@ window.pageInit = async function(params) {
                         ${isOwner ? `<button type="button" id="music-edit-btn" class="btn-ghost profile-music-edit">Chỉnh sửa</button>` : ''}
                     </div>
                 </div>
-                <div class="profile-music-audio">
-                    ${isYoutube ? `
-                        <div class="profile-yt-controls">
-                            <button type="button" id="profile-yt-toggle" class="profile-yt-btn">
-                                <i class="fas fa-play"></i> <span>Phát nhạc YouTube</span>
-                            </button>
+                <div class="profile-music-audio" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                    <div class="profile-music-player-status" style="display: flex; align-items: center; gap: 10px;">
+                        <div class="music-wave-animation paused" id="music-wave-indicator">
+                            <span class="stroke"></span>
+                            <span class="stroke"></span>
+                            <span class="stroke"></span>
+                            <span class="stroke"></span>
+                            <span class="stroke"></span>
                         </div>
+                        <span id="profile-music-status-text" style="font-weight: 600; font-size: 14px; color: var(--ink);">Đang tải nhạc...</span>
+                    </div>
+                    <div class="profile-music-controls-btn">
+                        <button type="button" id="profile-music-global-toggle" class="btn-primary" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s ease;">
+                            <i class="fas fa-play"></i> <span>Phát nhạc</span>
+                        </button>
+                    </div>
+                    ${isYoutube ? `
                         <div id="profile-yt-player-shell" style="position:absolute; width:1px; height:1px; overflow:hidden; left:-1000px; top:-1000px; pointer-events:none;">
                             <div id="profile-yt-player"></div>
                         </div>
                     ` : `
-                        <audio class="audio-slim" id="profile-audio-player" controls preload="none" src="${url}"></audio>
+                        <audio id="profile-audio-player" src="${url}" preload="auto" style="display:none;"></audio>
                     `}
                 </div>
             </div>
@@ -1096,52 +1106,155 @@ window.pageInit = async function(params) {
 
     // Only allow one audio playing at a time
     function initSingleAudio() {
+        const toggleBtn = document.getElementById('profile-music-global-toggle');
+        const statusText = document.getElementById('profile-music-status-text');
+        const waveIndicator = document.getElementById('music-wave-indicator');
+
+        if (!toggleBtn) return;
+
         const player = document.getElementById('profile-audio-player');
+        const isYoutube = !player; // If there is no HTML5 audio player, it's YouTube
+        
+        let ytPlayer = null;
+        let isPlaying = false;
+
+        function updatePlayerUI(playing) {
+            isPlaying = playing;
+            if (playing) {
+                toggleBtn.className = 'btn-outline';
+                toggleBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+                toggleBtn.style.color = '#ef4444';
+                toggleBtn.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                toggleBtn.innerHTML = '<i class="fas fa-pause"></i> <span>Tắt nhạc</span>';
+                if (statusText) statusText.textContent = 'Đang phát nhạc';
+                if (waveIndicator) waveIndicator.classList.remove('paused');
+            } else {
+                toggleBtn.className = 'btn-primary';
+                toggleBtn.style.background = '';
+                toggleBtn.style.color = '';
+                toggleBtn.style.borderColor = '';
+                toggleBtn.innerHTML = '<i class="fas fa-play"></i> <span>Phát nhạc</span>';
+                if (statusText) statusText.textContent = 'Đang tạm dừng';
+                if (waveIndicator) waveIndicator.classList.add('paused');
+            }
+        }
+
         if (player) {
             player.addEventListener('play', () => {
                 document.querySelectorAll('audio').forEach(el => {
                     if (el !== player) el.pause();
                 });
+                updatePlayerUI(true);
             });
+
+            player.addEventListener('pause', () => {
+                updatePlayerUI(false);
+            });
+
+            player.addEventListener('ended', () => {
+                updatePlayerUI(false);
+            });
+
+            toggleBtn.addEventListener('click', () => {
+                if (player.paused) {
+                    player.play().catch(err => {
+                        console.error('Playback failed:', err);
+                    });
+                } else {
+                    player.pause();
+                }
+            });
+
+            const startAutoplay = () => {
+                if (statusText) statusText.textContent = 'Đang phát nhạc';
+                player.play().then(() => {
+                    updatePlayerUI(true);
+                }).catch(err => {
+                    console.log('Autoplay blocked by browser. Waiting for user interaction...', err);
+                    updatePlayerUI(false);
+                    if (statusText) statusText.textContent = 'Click bất kỳ để phát nhạc';
+                    
+                    const playOnInteraction = () => {
+                        player.play().then(() => {
+                            updatePlayerUI(true);
+                            document.removeEventListener('click', playOnInteraction);
+                            document.removeEventListener('keydown', playOnInteraction);
+                        }).catch(e => {
+                            console.error('Interaction play failed:', e);
+                        });
+                    };
+                    document.addEventListener('click', playOnInteraction);
+                    document.addEventListener('keydown', playOnInteraction);
+                });
+            };
+
+            if (player.readyState >= 2) {
+                startAutoplay();
+            } else {
+                player.addEventListener('canplay', startAutoplay, { once: true });
+            }
         }
 
-        const ytToggle = document.getElementById('profile-yt-toggle');
-        if (ytToggle) {
-            let ytPlayer = null;
-            let isPlaying = false;
-
-            ytToggle.addEventListener('click', async () => {
-                const icon = ytToggle.querySelector('i');
-                const text = ytToggle.querySelector('span');
-
-                if (isPlaying && ytPlayer) {
-                    ytPlayer.pauseVideo();
-                    isPlaying = false;
-                    icon.className = 'fas fa-play';
-                    text.textContent = 'Tiếp tục phát';
-                    return;
-                }
-
+        if (isYoutube) {
+            const handleYoutubePlay = async () => {
                 if (!ytPlayer) {
-                    text.textContent = 'Đang tải...';
-                    ytToggle.disabled = true;
+                    if (statusText) statusText.textContent = 'Đang tải YouTube...';
+                    toggleBtn.disabled = true;
                     try {
                         ytPlayer = await loadYoutubePlayer();
                         isPlaying = true;
-                        icon.className = 'fas fa-pause';
-                        text.textContent = 'Tạm dừng';
+                        updatePlayerUI(true);
                     } catch (err) {
-                        text.textContent = 'Lỗi tải nhạc';
+                        console.error('Error loading YouTube:', err);
+                        if (statusText) statusText.textContent = 'Lỗi tải nhạc YouTube';
+                        updatePlayerUI(false);
                     } finally {
-                        ytToggle.disabled = false;
+                        toggleBtn.disabled = false;
                     }
                 } else {
                     ytPlayer.playVideo();
-                    isPlaying = true;
-                    icon.className = 'fas fa-pause';
-                    text.textContent = 'Tạm dừng';
+                    updatePlayerUI(true);
+                }
+            };
+
+            const handleYoutubePause = () => {
+                if (ytPlayer) {
+                    ytPlayer.pauseVideo();
+                    updatePlayerUI(false);
+                }
+            };
+
+            toggleBtn.addEventListener('click', () => {
+                if (isPlaying) {
+                    handleYoutubePause();
+                } else {
+                    handleYoutubePlay();
                 }
             });
+
+            // Autoplay YouTube on page load
+            setTimeout(async () => {
+                try {
+                    ytPlayer = await loadYoutubePlayer();
+                    isPlaying = true;
+                    updatePlayerUI(true);
+                    
+                    if (ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
+                        setTimeout(() => {
+                            const state = ytPlayer.getPlayerState();
+                            if (state !== 1 && state !== 3) {
+                                console.log('YouTube autoplay blocked or waiting.');
+                                updatePlayerUI(false);
+                                if (statusText) statusText.textContent = 'Click nút để phát nhạc';
+                            }
+                        }, 1500);
+                    }
+                } catch (err) {
+                    console.log('YouTube autoplay initiation blocked or deferred.', err);
+                    updatePlayerUI(false);
+                    if (statusText) statusText.textContent = 'Click nút để phát nhạc';
+                }
+            }, 500);
         }
     }
 
@@ -1172,11 +1285,22 @@ window.pageInit = async function(params) {
             if (window.YT && window.YT.Player) {
                 initPlayer();
             } else {
-                const tag = document.createElement('script');
-                tag.src = "https://www.youtube.com/iframe_api";
-                const firstScriptTag = document.getElementsByTagName('script')[0];
-                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-                window.onYouTubeIframeAPIReady = initPlayer;
+                let tag = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+                if (!tag) {
+                    tag = document.createElement('script');
+                    tag.src = "https://www.youtube.com/iframe_api";
+                    const firstScriptTag = document.getElementsByTagName('script')[0];
+                    if (firstScriptTag && firstScriptTag.parentNode) {
+                        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                    } else {
+                        document.head.appendChild(tag);
+                    }
+                }
+                const previousCallback = window.onYouTubeIframeAPIReady;
+                window.onYouTubeIframeAPIReady = () => {
+                    if (typeof previousCallback === 'function') previousCallback();
+                    initPlayer();
+                };
             }
         });
     }

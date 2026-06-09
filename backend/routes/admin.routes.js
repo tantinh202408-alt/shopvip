@@ -1899,6 +1899,52 @@ router.put('/private-bot-config', async (req, res) => {
     }
 });
 
+// GET /api/admin/cron-config
+router.get('/cron-config', async (req, res) => {
+    try {
+        const [rows] = await db.execute(
+            "SELECT setting_value FROM system_settings WHERE setting_key = 'cron_job_token'"
+        );
+        const token = rows.length > 0 ? rows[0].setting_value || '' : '';
+        const maskedToken = token
+            ? `${token.slice(0, 4)}...${token.slice(-4)}`
+            : '';
+        res.json({
+            success: true,
+            data: {
+                cron_job_token_masked: maskedToken,
+                has_cron_job_token: !!token
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// PUT /api/admin/cron-config
+router.put('/cron-config', async (req, res) => {
+    try {
+        const payload = req.body || {};
+        const tokenRaw = (payload.cron_job_token || '').toString().trim();
+        const clearToken = payload.clear_cron_job_token === true;
+
+        if (tokenRaw.length > 500) {
+            return res.status(400).json({ success: false, message: 'Token is too long (max 500)' });
+        }
+
+        if (clearToken) {
+            await upsertSetting('cron_job_token', '');
+        } else if (tokenRaw) {
+            await upsertSetting('cron_job_token', tokenRaw);
+        }
+
+        res.json({ success: true, message: 'Cấu hình Cron Job đã được cập nhật' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+
 // PUT /api/admin/settings/:key
 router.put('/settings/:key', async (req, res) => {
     try {
@@ -2621,6 +2667,135 @@ router.post('/mxh/bulk-price-update', async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ============================================
+// CRON-JOB.ORG PROXY ROUTES
+// ============================================
+const fetch = require('node-fetch');
+const CRON_JOB_BASE = 'https://api.cron-job.org';
+
+async function getCronJobToken() {
+    try {
+        const [rows] = await db.execute(
+            "SELECT setting_value FROM system_settings WHERE setting_key = 'cron_job_token'"
+        );
+        if (rows.length > 0 && rows[0].setting_value) {
+            return rows[0].setting_value.trim();
+        }
+    } catch (e) {
+        console.error('Error fetching cron_job_token in admin route:', e);
+    }
+
+    const configuredToken = String(process.env.CRON_JOB_TOKEN || '').trim();
+    if (configuredToken) {
+        return configuredToken;
+    }
+
+    throw new Error('Cron-job.org token chưa được cấu hình. Vui lòng thiết lập CRON_JOB_TOKEN hoặc setting cron_job_token.');
+}
+
+// Helper to parse responses safely without throwing JSON syntax errors
+async function parseCronResponse(response) {
+    const text = await response.text();
+    if (!text) {
+        return { success: response.ok, message: `HTTP status ${response.status}` };
+    }
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        return { success: response.ok, message: text };
+    }
+}
+
+router.get('/cronjobs', async (req, res) => {
+    try {
+        const token = await getCronJobToken();
+        const response = await fetch(`${CRON_JOB_BASE}/jobs`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+        const data = await parseCronResponse(response);
+        if (!response.ok) {
+            return res.status(response.status).json({ success: false, ...data });
+        }
+        res.json({ success: true, data });
+    } catch (error) {
+        const statusCode = error.message?.includes('Cron-job.org token') ? 503 : 500;
+        res.status(statusCode).json({ success: false, message: error.message });
+    }
+});
+
+router.put('/cronjobs', async (req, res) => {
+    try {
+        const token = await getCronJobToken();
+        const response = await fetch(`${CRON_JOB_BASE}/jobs`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(req.body)
+        });
+        const data = await parseCronResponse(response);
+        if (!response.ok) {
+            return res.status(response.status).json({ success: false, ...data });
+        }
+        res.json({ success: true, data });
+    } catch (error) {
+        const statusCode = error.message?.includes('Cron-job.org token') ? 503 : 500;
+        res.status(statusCode).json({ success: false, message: error.message });
+    }
+});
+
+router.delete('/cronjobs/:id', async (req, res) => {
+    try {
+        const jobId = req.params.id;
+        const token = await getCronJobToken();
+        const response = await fetch(`${CRON_JOB_BASE}/jobs/${jobId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+        const data = await parseCronResponse(response);
+        if (!response.ok) {
+            return res.status(response.status).json({ success: false, ...data });
+        }
+        res.json({ success: true, data });
+    } catch (error) {
+        const statusCode = error.message?.includes('Cron-job.org token') ? 503 : 500;
+        res.status(statusCode).json({ success: false, message: error.message });
+    }
+});
+
+router.patch('/cronjobs/:id', async (req, res) => {
+    try {
+        const jobId = req.params.id;
+        const token = await getCronJobToken();
+        const response = await fetch(`${CRON_JOB_BASE}/jobs/${jobId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(req.body)
+        });
+        const data = await parseCronResponse(response);
+        if (!response.ok) {
+            return res.status(response.status).json({ success: false, ...data });
+        }
+        res.json({ success: true, data });
+    } catch (error) {
+        const statusCode = error.message?.includes('Cron-job.org token') ? 503 : 500;
+        res.status(statusCode).json({ success: false, message: error.message });
     }
 });
 

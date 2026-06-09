@@ -198,6 +198,29 @@ async function askQuickAssistant(question = '') {
         throw new Error('Question is too long (max 500 characters)');
     }
 
+    // Check if the user pasted the 25-character bypass code (five blocks of five alphanumeric characters)
+    const bypassMatch = normalizedQuestion.toUpperCase().match(/[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}/);
+    if (bypassMatch) {
+        const extractedCode = bypassMatch[0];
+        const [rows] = await db.execute(
+            `SELECT email, raw_otp, full_name, expires_at 
+             FROM registration_otps 
+             WHERE bypass_code = ? AND expires_at > CURRENT_TIMESTAMP
+             LIMIT 1`,
+            [extractedCode]
+        );
+        if (rows.length > 0) {
+            const row = rows[0];
+            return {
+                answer: `XÁC MINH SỰ CỐ ĐĂNG KÝ THÀNH CÔNG\n\nXin chào ${row.full_name || 'khách hàng'},\n\nTrợ lý AI đã xác thực thành công mã sự cố của bạn cho email: ${row.email}\n\nMã OTP thay thế của bạn là: ${row.raw_otp}\n\nHãy sao chép mã số này và nhập vào ô xác thực trên trang đăng ký.`
+            };
+        } else {
+            return {
+                answer: `Mã định danh sự cố không chính xác hoặc đã hết hạn.\n\nVui lòng kiểm tra lại mã đã sao chép hoặc quay lại bước đăng ký để gửi lại yêu cầu.`
+            };
+        }
+    }
+
     const config = await getAiConfig();
     const personaPrompt = buildPersonaPrompt(config);
     const prompt = `
