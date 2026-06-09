@@ -257,7 +257,7 @@ function shouldGateHtmlRequest(req) {
 
 app.use((req, res, next) => {
     // If captcha is not configured, skip human gate entirely
-    if (!recaptchaService.isEnabled()) {
+    if (!recaptchaService.isEnabled(req)) {
         return next();
     }
 
@@ -307,7 +307,7 @@ app.get(['/product/:id', '/page2/:slug'], async (req, res, next) => {
 // SERVE INDEX.HTML FOR ALL ROUTES (SPA)
 // ============================================
 app.get('*', (req, res) => {
-    if (!recaptchaService.isEnabled() || humanGateService.hasClearance(req) || isSocialPreviewBot(req)) {
+    if (!recaptchaService.isEnabled(req) || humanGateService.hasClearance(req) || isSocialPreviewBot(req)) {
         return sendHtmlFile(res, APP_ENTRY_FILE);
     }
 

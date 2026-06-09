@@ -19,8 +19,12 @@ function isTurnstile() {
     return Boolean(process.env.TURNSTILE_SITE_KEY && process.env.TURNSTILE_SECRET_KEY);
 }
 
-function isEnabled() {
+function hasConfiguredKeys() {
     return Boolean(getSiteKey() && getSecretKey());
+}
+
+function isEnabled(req = null) {
+    return hasConfiguredKeys() && !shouldBypassVerification(req);
 }
 
 function shouldEnforceLocal() {
@@ -122,12 +126,16 @@ function isLocalDevelopmentRequest(req) {
 }
 
 function shouldBypassVerification(req, options = {}) {
-    if (!isEnabled()) {
+    if (!hasConfiguredKeys()) {
         return options.forceEnforce !== true;
     }
 
     if (options.forceEnforce === true) {
         return false;
+    }
+
+    if (isLocalDevelopmentRequest(req) && !shouldEnforceLocal()) {
+        return true;
     }
 
     return false;

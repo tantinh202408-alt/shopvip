@@ -12,6 +12,7 @@ const app = express();
 const logService = require('./services/logService');
 const { ipGuard } = require('./middleware/ipGuard');
 const humanGateService = require('./services/humanGateService');
+const recaptchaService = require('./services/recaptchaService');
 const { apiLimiter, isAdminIdentityRequest } = require('./middleware/apiRateLimit');
 app.use('/api', async (req, res, next) => {
     try {
@@ -273,7 +274,7 @@ app.use('/api', (req, res, next) => {
         return next();
     }
 
-    if (humanGateService.hasClearance(req)) {
+    if (humanGateService.hasClearance(req) || !recaptchaService.isEnabled(req)) {
         return next();
     }
 
