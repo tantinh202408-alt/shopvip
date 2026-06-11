@@ -736,6 +736,21 @@ async function ensureFinanceTables() {
     `);
 }
 
+async function ensureCronTables() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS cron_execution_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            message TEXT,
+            duration_ms INTEGER,
+            executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_cron_logs_job ON cron_execution_logs (job_name)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_cron_logs_executed ON cron_execution_logs (executed_at DESC)');
+}
+
 async function ensureSystemSettingsKeys() {
     const [rows] = await db.execute(
         "SELECT id FROM system_settings WHERE setting_key = 'cron_job_token'"
@@ -760,5 +775,6 @@ module.exports = {
     ensureRegistrationOtpTable,
     ensureGamificationTables,
     ensureFinanceTables,
+    ensureCronTables,
     ensureSystemSettingsKeys
 };

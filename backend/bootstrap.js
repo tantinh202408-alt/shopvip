@@ -18,7 +18,8 @@ const {
     ensureMxhTables,
     ensureRegistrationOtpTable,
     ensureGamificationTables,
-    ensureFinanceTables
+    ensureFinanceTables,
+    ensureCronTables
 } = require('./utils/initDatabase');
 
 let bootstrapPromise = null;
@@ -80,10 +81,13 @@ async function runBootstrap() {
     await ensureRegistrationOtpTable();
     await ensureGamificationTables();
     await ensureFinanceTables();
+    await ensureCronTables();
     await createDefaultAdmin();
 
     return initResult;
 }
+
+const cronService = require('./services/cronService');
 
 async function ensureBootstrapped(options = {}) {
     const { startTelegramBot = false } = options;
@@ -101,6 +105,7 @@ async function ensureBootstrapped(options = {}) {
         initTelegramBot();
         telegramBotStarted = true;
         walletService.startLuckySpinScheduler();
+        cronService.startSchedulers();
     }
 
     return result;

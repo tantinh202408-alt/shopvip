@@ -2799,6 +2799,208 @@ router.patch('/cronjobs/:id', async (req, res) => {
     }
 });
 
+const cronService = require('../services/cronService');
+
+router.get('/system-cron/logs', async (req, res) => {
+    try {
+        const logs = await cronService.getExecutionLogs(100);
+        res.json({ success: true, data: logs });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+router.post('/system-cron/run', async (req, res) => {
+    try {
+        const { job_name } = req.body;
+        if (!job_name) {
+            return res.status(400).json({ success: false, message: 'Thiếu tên tác vụ job_name' });
+        }
+        const result = await cronService.triggerManually(job_name);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// SYSTEM DIAGNOSTICS ROUTES
+router.get('/diagnostics/list', async (req, res) => {
+    const checks = [
+        { id: 'database', name: 'Kết nối Cơ sở dữ liệu (SQLite/Turso)', description: 'Kiểm tra xem máy chủ có truy vấn được cơ sở dữ liệu Turso hay không.' },
+        { id: 'brevo', name: 'Cấu hình Email Brevo (API/SMTP)', description: 'Xác thực API Key của Brevo với máy chủ mail Brevo.' },
+        { id: 'resend', name: 'Cấu hình Email Resend (API)', description: 'Xác thực API Key của Resend để gửi thư dự phòng.' },
+        { id: 'telegram', name: 'Kết nối Telegram Bot', description: 'Gửi truy vấn xác thực token bot và quyền hạn nhận thông báo.' },
+        { id: 'uploads', name: 'Quyền ghi thư mục Uploads', description: 'Kiểm tra quyền tạo/ghi/xóa tệp tin ảnh và sản phẩm trên đĩa cứng.' },
+        { id: 'imgbb', name: 'API Lưu trữ ảnh ImgBB', description: 'Kiểm tra sự tồn tại của API Key để đăng tải hình ảnh sản phẩm.' },
+        { id: 'link4m', name: 'Tích hợp rút gọn Link4m', description: 'Xác minh khóa API rút gọn liên kết vượt link kiếm tiền.' },
+        { id: 'gemini', name: 'Cấu hình Trợ lý AI Gemini', description: 'Kiểm tra cấu hình API Key của Google Gemini AI.' },
+        { id: 'turnstile', name: 'Cơ chế chống Spam Captcha (Turnstile)', description: 'Xác minh cấu hình khóa bảo vệ website khỏi bot.' },
+        { id: 'cron', name: 'Lập lịch Cron Job nội bộ', description: 'Kiểm tra trạng thái sẵn sàng của các tác vụ nền.' }
+    ];
+    res.json({ success: true, data: checks });
+});
+
+router.post('/diagnostics/run', async (req, res) => {
+    const { id } = req.body;
+    if (!id) {
+        return res.status(400).json({ success: false, message: 'Thiếu mã chẩn đoán id' });
+    }
+
+    const startTime = Date.now();
+    let status = 'ok';
+    let message = 'Hoạt động tốt';
+    let details = {};
+
+    try {
+        if (id === 'database') {
+            const [rows] = await db.execute('SELECT 1 + 1 AS result');
+            if (!rows || rows.length === 0 || rows[0].result !== 2) {
+                throw new Error('Cơ sở dữ liệu trả về kết quả không chính xác.');
+            }
+            const [userRows] = await db.execute('SELECT COUNT(*) AS count FROM users');
+            details = { user_count: userRows[0].count };
+            message = `Kết nối thành công. Tổng số người dùng: ${userRows[0].count}.`;
+        } 
+        else if (id === 'brevo') {
+            const apiKey = String(process.env.BREVO_API_KEY || '').trim();
+            if (!apiKey) {
+                status = 'warning';
+                message = 'Chưa cấu hình API Key Brevo (BREVO_API_KEY).';
+            } else {
+                const response = await fetch('https://api.brevo.com/v3/account', {
+                    headers: { 'api-key': apiKey, 'Accept': 'application/json' }
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `Brevo phản hồi lỗi HTTP ${response.status}`);
+                }
+                const account = await response.json();
+                message = `Đã kết nối tài khoản Brevo: ${account.email} (${account.firstName} ${account.lastName})`;
+            }
+        } 
+        else if (id === 'resend') {
+            const apiKey = String(process.env.RESEND_API_KEY || 're_g4RSRPzr_8kb4gokhs96hoKETR24L1hHM').trim();
+            if (!apiKey) {
+                status = 'warning';
+                message = 'Chưa cấu hình API Key Resend.';
+            } else {
+                const { Resend } = require('resend');
+                const resend = new Resend(apiKey);
+                const { data, error } = await resend.domains.list();
+                if (error) {
+                    const errMsg = String(error.message || '');
+                    if (errMsg.toLowerCase().includes('restricted') || errMsg.toLowerCase().includes('only send emails')) {
+                        message = 'Đã kết nối Resend thành công. API Key hoạt động ổn định (Quyền: Chỉ gửi Email).';
+                    } else {
+                        throw new Error(error.message || 'Resend phản hồi lỗi');
+                    }
+                } else {
+                    message = 'Đã kết nối tài khoản Resend thành công. API Key hoạt động ổn định (Quyền: Toàn quyền).';
+                }
+            }
+        } 
+
+        else if (id === 'telegram') {
+            const botToken = String(process.env.TELEGRAM_BOT_TOKEN || '').trim();
+            if (!botToken) {
+                status = 'warning';
+                message = 'Chưa cấu hình TELEGRAM_BOT_TOKEN.';
+            } else {
+                const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+                if (!response.ok) {
+                    throw new Error(`Telegram phản hồi lỗi HTTP ${response.status}`);
+                }
+                const botData = await response.json();
+                if (!botData.ok) {
+                    throw new Error(botData.description || 'Không thể xác thực bot.');
+                }
+                message = `Đã kết nối Bot Telegram: @${botData.result.username} (ID: ${botData.result.id})`;
+            }
+        } 
+        else if (id === 'uploads') {
+            const fsPromises = require('fs/promises');
+            const uploadDir = path.resolve(process.env.UPLOAD_DIR || './backend/uploads');
+            const tempFile = path.join(uploadDir, `test_write_${Date.now()}.tmp`);
+            
+            await fsPromises.mkdir(uploadDir, { recursive: true });
+            await fsPromises.writeFile(tempFile, 'test');
+            const content = await fsPromises.readFile(tempFile, 'utf8');
+            if (content !== 'test') {
+                throw new Error('Dữ liệu tệp tạm thời bị sai lệch.');
+            }
+            await fsPromises.unlink(tempFile);
+            message = `Thư mục uploads ghi đọc thành công tại: ${uploadDir}`;
+        } 
+        else if (id === 'imgbb') {
+            const key = String(process.env.IMGBB_API_KEY || '').trim();
+            if (!key) {
+                status = 'warning';
+                message = 'Chưa cấu hình IMGBB_API_KEY. Người bán sẽ không thể tải lên hình ảnh sản phẩm.';
+            } else {
+                message = `Đã cấu hình ImgBB API Key (Mã hóa: ${key.slice(0, 4)}...${key.slice(-4)}).`;
+            }
+        } 
+        else if (id === 'link4m') {
+            const key = String(process.env.LINK4M_API_KEY || '').trim();
+            if (!key) {
+                status = 'warning';
+                message = 'Chưa cấu hình LINK4M_API_KEY. Vòng quay may mắn miễn phí sẽ không được rút gọn liên kết.';
+            } else {
+                message = `Đã cấu hình Link4m API Key (Mã hóa: ${key.slice(0, 4)}...${key.slice(-4)}).`;
+            }
+        } 
+        else if (id === 'gemini') {
+            const key = String(process.env.GEMINI_API_KEY || '').trim();
+            if (!key) {
+                status = 'warning';
+                message = 'Chưa cấu hình GEMINI_API_KEY. Trợ lý AI tư vấn sản phẩm sẽ không hoạt động.';
+            } else {
+                message = `Đã cấu hình Gemini API Key thành công.`;
+            }
+        } 
+        else if (id === 'turnstile') {
+            const siteKey = String(process.env.TURNSTILE_SITE_KEY || '').trim();
+            const secretKey = String(process.env.TURNSTILE_SECRET_KEY || '').trim();
+            if (!siteKey || !secretKey) {
+                status = 'warning';
+                message = 'Chưa cấu hình đầy đủ Cloudflare Turnstile Site Key hoặc Secret Key.';
+            } else {
+                message = `Cloudflare Turnstile đã cấu hình hoạt động tốt.`;
+            }
+        } 
+        else if (id === 'cron') {
+            const [rows] = await db.execute('SELECT COUNT(*) AS count FROM cron_execution_logs');
+            const total = rows[0].count;
+            const [lastErr] = await db.execute(
+                "SELECT executed_at FROM cron_execution_logs WHERE status = 'failed' ORDER BY executed_at DESC LIMIT 1"
+            );
+            let errInfo = '';
+            if (lastErr && lastErr.length > 0) {
+                errInfo = `. Lỗi gần nhất: ${lastErr[0].executed_at}`;
+            }
+            message = `Hệ thống Cron Job đang chạy ngầm. Tổng số lượt tác vụ đã thực hiện: ${total}${errInfo}.`;
+        } 
+        else {
+            throw new Error(`Mã kiểm tra "${id}" không hợp lệ.`);
+        }
+    } catch (err) {
+        status = 'error';
+        message = err.message || 'Lỗi không xác định khi thực thi chẩn đoán.';
+    }
+
+    const duration = Date.now() - startTime;
+    res.json({
+        success: true,
+        data: {
+            id,
+            status,
+            message,
+            duration,
+            details
+        }
+    });
+});
+
 module.exports = router;
 
 

@@ -206,6 +206,7 @@ class AuthService {
         }
 
         const pending = await getPendingRegistration(db, normalizedEmail);
+        const isResend = !!pending;
         const resendAvailableMs = parseDbDateTime(pending?.resend_available_at);
         if (resendAvailableMs > Date.now()) {
             throw loginProtectionService.createRateLimitError(
@@ -268,7 +269,8 @@ class AuthService {
             to: normalizedEmail,
             otpCode,
             fullName: safeFullName || normalizedEmail,
-            expiresInMinutes: Math.max(Math.ceil(REGISTRATION_OTP_EXPIRES_MS / 60000), 1)
+            expiresInMinutes: Math.max(Math.ceil(REGISTRATION_OTP_EXPIRES_MS / 60000), 1),
+            forceProvider: isResend ? 'resend' : undefined
         }).catch((error) => {
             console.error('[email-background-error] Failed to send registration OTP email to %s:', normalizedEmail, error);
         });

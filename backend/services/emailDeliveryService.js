@@ -32,10 +32,11 @@ const BREVO_SANDBOX_ENABLED = ['1', 'true', 'yes', 'on'].includes(
     String(process.env.BREVO_SANDBOX || '').trim().toLowerCase()
 );
 const EMAIL_PROVIDER = String(process.env.EMAIL_PROVIDER || '').trim().toLowerCase();
-const RESEND_API_URL = 'https://api.resend.com/emails';
-const RESEND_API_KEY = String(process.env.RESEND_API_KEY || '').trim();
+const { Resend } = require('resend');
+const RESEND_API_KEY = String(process.env.RESEND_API_KEY || 're_g4RSRPzr_8kb4gokhs96hoKETR24L1hHM').trim();
+const resendClient = new Resend(RESEND_API_KEY);
 const MAIL_FROM = String(
-    process.env.RESEND_FROM_EMAIL || process.env.MAIL_FROM || process.env.EMAIL_FROM || ''
+    process.env.RESEND_FROM_EMAIL || process.env.MAIL_FROM || process.env.EMAIL_FROM || 'onboarding@resend.dev'
 ).trim();
 const MAIL_FROM_NAME = String(process.env.MAIL_FROM_NAME || APP_NAME).trim();
 const IS_PRODUCTION = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
@@ -287,61 +288,52 @@ async function sendWithBrevoApi({ to, subject, html, text }) {
 }
 
 async function sendWithResend({ to, subject, html, text }) {
-    const response = await fetch(RESEND_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${RESEND_API_KEY}`
-        },
-        body: JSON.stringify({
-            from: buildResendFromAddress(),
-            to: Array.isArray(to) ? to : [to],
-            subject,
-            html,
-            text
-        })
+    const { data, error } = await resendClient.emails.send({
+        from: buildResendFromAddress(),
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        html: html || undefined,
+        text: text || undefined
     });
 
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-        const message =
-            payload?.message ||
-            payload?.error?.message ||
-            'Khong gui duoc email OTP.';
-        const error = new Error(message);
-        error.statusCode = response.status || 502;
-        throw error;
+    if (error) {
+        const message = error.message || 'Khong gui duoc email OTP.';
+        const err = new Error(message);
+        err.statusCode = 502;
+        throw err;
     }
 
     return {
         provider: 'resend',
-        ...payload
+        ...data
     };
 }
 
-async function sendMail({ to, subject, html, text }) {
-    if (EMAIL_PROVIDER === 'smtp' || EMAIL_PROVIDER === 'gmail') {
+async function sendMail({ to, subject, html, text, forceProvider }) {
+    const provider = forceProvider || EMAIL_PROVIDER;
+
+    if (provider === 'smtp' || provider === 'gmail') {
         if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
             throw createMailConfigError();
         }
         return sendWithGenericSmtp({ to, subject, html, text });
     }
 
-    if (EMAIL_PROVIDER === 'brevo-api') {
+    if (provider === 'brevo-api') {
         if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL) {
             throw createMailConfigError();
         }
         return sendWithBrevoApi({ to, subject, html, text });
     }
 
-    if (EMAIL_PROVIDER === 'brevo-smtp') {
+    if (provider === 'brevo-smtp') {
         if (!BREVO_SMTP_LOGIN || !BREVO_SMTP_KEY || !BREVO_SENDER_EMAIL) {
             throw createMailConfigError();
         }
         return sendWithBrevoSmtp({ to, subject, html, text });
     }
 
-    if (EMAIL_PROVIDER === 'resend') {
+    if (provider === 'resend') {
         if (!RESEND_API_KEY || !MAIL_FROM) {
             throw createMailConfigError();
         }
@@ -402,7 +394,7 @@ function buildOtpDigitsHtml(otpCode = '') {
         .join('<td style="width:8px;font-size:0;line-height:0;">&nbsp;</td>');
 }
 
-async function sendRegistrationOtp({ to, otpCode, fullName = '', expiresInMinutes = 10 }) {
+async function sendRegistrationOtp({ to, otpCode, fullName = '', expiresInMinutes = 10, forceProvider }) {
     const safeName = String(fullName || '').trim();
     const greeting = safeName ? `Xin chao ${safeName},` : 'Xin chao,';
     const safeAppName = escapeHtml(APP_NAME);
@@ -501,7 +493,8 @@ async function sendRegistrationOtp({ to, otpCode, fullName = '', expiresInMinute
         to,
         subject,
         html,
-        text
+        text,
+        forceProvider
     });
 }
 

@@ -13,10 +13,21 @@ const logService = require('./services/logService');
 const { ipGuard } = require('./middleware/ipGuard');
 const humanGateService = require('./services/humanGateService');
 const recaptchaService = require('./services/recaptchaService');
+function isCronRequest(req) {
+    const configuredSecret = String(process.env.CRON_JOB_SECRET || process.env.CRON_SECRET || '').trim();
+    if (!configuredSecret) {
+        return false;
+    }
+    const headerValue = String(req.headers['x-cron-secret'] || '').trim();
+    const queryValue = String(req.query?.cron_secret || '').trim();
+    const providedValue = headerValue || queryValue;
+    return providedValue && providedValue === configuredSecret;
+}
+
 const { apiLimiter, isAdminIdentityRequest } = require('./middleware/apiRateLimit');
 app.use('/api', async (req, res, next) => {
     try {
-        if (await isAdminIdentityRequest(req)) {
+        if (isCronRequest(req) || await isAdminIdentityRequest(req)) {
             return next();
         }
     } catch (_) {
@@ -172,6 +183,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(ipGuard);
 
+// Security Headers Middleware
+app.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http: data: blob:; img-src 'self' * data: blob:; media-src 'self' * data: blob:; connect-src 'self' *; frame-src 'self' *;");
+    next();
+});
+
+const { secondaryServerGuard } = require('./middleware/secondaryServerGuard');
+app.use(secondaryServerGuard);
+
 const apiCrypto = require('./utils/apiCrypto');
 
 // API Traffic Encryption/Decryption Middleware
@@ -270,7 +294,7 @@ function isHumanGateExemptApiPath(pathname = '') {
 }
 
 app.use('/api', (req, res, next) => {
-    if (req.method === 'OPTIONS' || isHumanGateExemptApiPath(req.path)) {
+    if (req.method === 'OPTIONS' || isHumanGateExemptApiPath(req.path) || isCronRequest(req)) {
         return next();
     }
 

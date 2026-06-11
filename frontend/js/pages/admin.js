@@ -2546,11 +2546,41 @@ window.pageInit = async function(params, query = {}) {
                         <div id="api-key-list" class="section-card section-spaced"></div>
                     </div>
                 </div>
+
+                <div class="settings-section">
+                    <button type="button" class="settings-header">Chẩn đoán & Kiểm tra Hệ thống</button>
+                    <div class="settings-body">
+                        <div class="diagnostics-summary-wrapper" style="display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: 30px; margin-bottom: 30px; padding: 24px; background: rgba(15, 23, 42, 0.4); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                                <div class="stability-gauge" id="diagnostics-gauge" style="width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(rgba(255,255,255,0.08) 0deg, rgba(255,255,255,0.08) 360deg); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.4); transition: background 0.6s ease;">
+                                    <div style="width: 114px; height: 114px; border-radius: 50%; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                        <span id="diagnostics-score-text" style="font-size: 32px; font-weight: 800; color: #fff;">--</span>
+                                        <span style="font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Ổn Định</span>
+                                    </div>
+                                </div>
+                                <div style="font-size: 13px; font-weight: 500; color: var(--muted); text-align: center;" id="diagnostics-summary-status">Chưa thực hiện kiểm tra</div>
+                            </div>
+                            <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 15px;">
+                                <h4 style="margin: 0; color: #fff; font-size: 16px; font-weight: 700;">Hệ thống kiểm tra tự động</h4>
+                                <p style="margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5;">Hệ thống sẽ chạy thử nghiệm từng chức năng để kiểm tra cấu hình SMTP, Resend, DB, Telegram, Gemini và thư mục ghi. Bấm nút bên dưới để bắt đầu kiểm tra toàn bộ.</p>
+                                <div>
+                                    <button type="button" class="btn btn-primary" id="btn-run-all-diagnostics" style="display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(14, 165, 164, 0.25);">
+                                        <i class="fas fa-play"></i> Kiểm Tra Toàn Bộ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="diagnostics-list-container" style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="loading-inline">Đang tải danh sách kiểm tra...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
 
         initFilePickers(container);
         loadFeatureLocks();
+        initDiagnostics();
 
         async function loadFeatureLocks() {
             const list = document.getElementById('feature-locks-list');
@@ -3267,6 +3297,173 @@ window.pageInit = async function(params, query = {}) {
                     await loadApiKeys();
                 }
             });
+        }
+
+        async function initDiagnostics() {
+            const listContainer = document.getElementById('diagnostics-list-container');
+            const runAllBtn = document.getElementById('btn-run-all-diagnostics');
+            if (!listContainer || !runAllBtn) return;
+
+            let checks = [];
+            try {
+                const res = await api.get('/admin/diagnostics/list');
+                if (res.success && Array.isArray(res.data)) {
+                    checks = res.data;
+                }
+            } catch (err) {
+                listContainer.innerHTML = `<p style="color: var(--danger);">Không thể tải danh sách kiểm tra: ${err.message}</p>`;
+                return;
+            }
+
+            const getIcon = (id) => {
+                const icons = {
+                    database: 'fas fa-database',
+                    brevo: 'fas fa-envelope-open-text',
+                    resend: 'fas fa-paper-plane',
+                    telegram: 'fab fa-telegram',
+                    uploads: 'fas fa-folder-open',
+                    imgbb: 'fas fa-image',
+                    link4m: 'fas fa-link',
+                    gemini: 'fas fa-brain',
+                    turnstile: 'fas fa-shield-halved',
+                    cron: 'fas fa-clock'
+                };
+                return icons[id] || 'fas fa-microchip';
+            };
+
+            listContainer.innerHTML = checks.map(check => `
+                <div class="diagnostics-card" id="diag-card-${check.id}" style="display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 16px; background: rgba(30, 41, 59, 0.25); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; transition: all 0.25s ease;">
+                    <div style="display: flex; align-items: center; gap: 14px; flex: 1;">
+                        <div class="diag-icon-wrapper" style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--muted);">
+                            <i class="${getIcon(check.id)}"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #fff; font-size: 14px;">${check.name}</div>
+                            <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">${check.description}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div class="diag-result-status" id="diag-status-${check.id}" style="font-size: 12px; font-weight: 500; text-align: right; color: var(--muted); max-width: 300px; line-height: 1.4;">
+                            Chưa chạy
+                        </div>
+                        <button type="button" class="btn btn-icon diag-run-single" data-id="${check.id}" style="width: 32px; height: 32px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--primary); border: 1px solid rgba(14,165,164,0.3); background: transparent; cursor: pointer; transition: all 0.2s;" title="Chạy kiểm tra này">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            const results = {};
+
+            listContainer.querySelectorAll('.diag-run-single').forEach(btn => {
+                btn.onclick = async () => {
+                    const id = btn.dataset.id;
+                    await runSingleCheck(id);
+                };
+            });
+
+            runAllBtn.onclick = async () => {
+                runAllBtn.disabled = true;
+                runAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang chạy...';
+                
+                for (const check of checks) {
+                    await runSingleCheck(check.id);
+                }
+                
+                runAllBtn.disabled = false;
+                runAllBtn.innerHTML = '<i class="fas fa-play"></i> Kiểm Tra Toàn Bộ';
+            };
+
+            async function runSingleCheck(id) {
+                const card = document.getElementById(`diag-card-${id}`);
+                const statusDiv = document.getElementById(`diag-status-${id}`);
+                const btn = listContainer.querySelector(`.diag-run-single[data-id="${id}"]`);
+                if (!card || !statusDiv || !btn) return;
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: var(--primary);"></i>';
+                statusDiv.innerHTML = '<span style="color: var(--muted);">Đang chạy...</span>';
+                card.style.borderColor = 'rgba(14, 165, 164, 0.2)';
+
+                try {
+                    const res = await api.post('/admin/diagnostics/run', { id });
+                    if (res.success && res.data) {
+                        const data = res.data;
+                        results[id] = data;
+
+                        if (data.status === 'ok') {
+                            statusDiv.innerHTML = `<span style="color: #22c55e; font-weight: 600;"><i class="fas fa-circle-check" style="margin-right: 4px;"></i>Ổn định (${data.duration}ms)</span>`;
+                            btn.innerHTML = '<i class="fas fa-check" style="color: #22c55e;"></i>';
+                            card.style.borderColor = 'rgba(34, 197, 94, 0.25)';
+                        } else if (data.status === 'warning') {
+                            statusDiv.innerHTML = `<span style="color: #eab308; font-weight: 600;"><i class="fas fa-triangle-exclamation" style="margin-right: 4px;"></i>Cảnh báo (${data.duration}ms)</span><br><small style="color: var(--muted);">${data.message}</small>`;
+                            btn.innerHTML = '<i class="fas fa-triangle-exclamation" style="color: #eab308;"></i>';
+                            card.style.borderColor = 'rgba(234, 179, 8, 0.25)';
+                        } else {
+                            statusDiv.innerHTML = `<span style="color: #f43f5e; font-weight: 600;"><i class="fas fa-circle-xmark" style="margin-right: 4px;"></i>Lỗi</span><br><small style="color: #fb7185;">${data.message}</small>`;
+                            btn.innerHTML = '<i class="fas fa-xmark" style="color: #f43f5e;"></i>';
+                            card.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+                        }
+                    } else {
+                        throw new Error(res.message);
+                    }
+                } catch (err) {
+                    results[id] = { status: 'error', message: err.message || 'Lỗi không xác định' };
+                    statusDiv.innerHTML = `<span style="color: #f43f5e; font-weight: 600;"><i class="fas fa-triangle-exclamation" style="margin-right: 4px;"></i>Lỗi kết nối</span><br><small style="color: #fb7185;">${err.message}</small>`;
+                    btn.innerHTML = '<i class="fas fa-xmark" style="color: #f43f5e;"></i>';
+                    card.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+                } finally {
+                    btn.disabled = false;
+                    if (!btn.querySelector('.fa-check') && !btn.querySelector('.fa-triangle-exclamation') && !btn.querySelector('.fa-xmark')) {
+                        btn.innerHTML = '<i class="fas fa-play"></i>';
+                    }
+                    updateStabilityScore();
+                }
+            }
+
+            function updateStabilityScore() {
+                let totalScore = 0;
+                let ranCount = 0;
+
+                checks.forEach(check => {
+                    const result = results[check.id];
+                    if (result) {
+                        ranCount++;
+                        if (result.status === 'ok') totalScore += 10;
+                        else if (result.status === 'warning') totalScore += 5;
+                    }
+                });
+
+                if (ranCount === 0) return;
+
+                const maxPossibleScore = ranCount * 10;
+                const scorePct = Math.round((totalScore / maxPossibleScore) * 100);
+
+                const scoreText = document.getElementById('diagnostics-score-text');
+                const summaryStatus = document.getElementById('diagnostics-summary-status');
+                const gauge = document.getElementById('diagnostics-gauge');
+
+                if (scoreText) scoreText.textContent = `${scorePct}%`;
+
+                let color = '#334155';
+                let statusMsg = 'Chưa hoàn thành kiểm tra';
+                if (scorePct >= 80) {
+                    color = '#22c55e';
+                    statusMsg = `<span style="color: #22c55e; font-weight: 600;">Hệ thống rất ổn định (${scorePct}%)</span>`;
+                } else if (scorePct >= 40) {
+                    color = '#eab308';
+                    statusMsg = `<span style="color: #eab308; font-weight: 600;">Hệ thống trung bình (${scorePct}%)</span>`;
+                } else {
+                    color = '#f43f5e';
+                    statusMsg = `<span style="color: #f43f5e; font-weight: 600;">Hệ thống gặp sự cố nghiêm trọng (${scorePct}%)</span>`;
+                }
+
+                if (summaryStatus) summaryStatus.innerHTML = statusMsg;
+
+                if (gauge) {
+                    gauge.style.background = `conic-gradient(${color} 0deg, ${color} ${scorePct * 3.6}deg, rgba(255,255,255,0.08) ${scorePct * 3.6}deg, rgba(255,255,255,0.08) 360deg)`;
+                }
+            }
         }
 
         await loadApiKeys();
@@ -4765,6 +4962,21 @@ window.pageInit = async function(params, query = {}) {
         if (!container) return;
 
         container.innerHTML = `
+            <!-- Cấu hình Token Card -->
+            <div class="section-card" style="margin-bottom: 24px;">
+                <h4 class="section-title" style="margin: 0 0 12px 0; font-size: 16px;"><i class="fas fa-key" style="margin-right: 8px; color: var(--primary);"></i>Cấu hình Token Cron-job.org</h4>
+                <form id="cron-config-form" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 250px; margin-bottom: 0;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 12px; color: var(--muted);">REST API Key / Token</label>
+                        <input type="password" id="cron-config-token" placeholder="Nhập API key mới..." style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: #fff;">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="height: 42px;">Lưu Token</button>
+                </form>
+                <p style="font-size: 12px; color: var(--muted); margin: 8px 0 0 0;" id="cron-token-status">
+                    Đang tải cấu hình token...
+                </p>
+            </div>
+
             <div class="section-card">
                 <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <div>
@@ -4853,11 +5065,37 @@ window.pageInit = async function(params, query = {}) {
         const btnClose = document.getElementById('cronjob-modal-close');
         const btnCancel = document.getElementById('btn-cancel-cronjob');
         const form = document.getElementById('cronjob-form');
+        const configForm = document.getElementById('cron-config-form');
 
         if (btnAdd) btnAdd.onclick = () => showCronJobModal();
         if (btnClose) btnClose.onclick = () => hideCronJobModal();
         if (btnCancel) btnCancel.onclick = () => hideCronJobModal();
         if (form) form.onsubmit = handleFormSubmit;
+
+        if (configForm) {
+            configForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const tokenVal = document.getElementById('cron-config-token').value.trim();
+                if (!tokenVal) {
+                    showToast('Vui lòng nhập token', 'warning');
+                    return;
+                }
+                showToast('Đang lưu token...', 'info');
+                try {
+                    const res = await api.put('/admin/cron-config', { cron_job_token: tokenVal });
+                    if (res.success) {
+                        showToast('Đã lưu cấu hình token thành công', 'success');
+                        document.getElementById('cron-config-token').value = '';
+                        await fetchCronConfig();
+                        await fetchAndRenderCronJobs();
+                    } else {
+                        showToast(res.message || 'Lưu thất bại', 'error');
+                    }
+                } catch (err) {
+                    showToast(err.message || 'Lỗi kết nối', 'error');
+                }
+            };
+        }
 
         window.onclick = (e) => {
             const modal = document.getElementById('cronjob-modal');
@@ -4866,6 +5104,25 @@ window.pageInit = async function(params, query = {}) {
             }
         };
 
+        async function fetchCronConfig() {
+            try {
+                const res = await api.get('/admin/cron-config');
+                const statusP = document.getElementById('cron-token-status');
+                if (res.success && statusP) {
+                    if (res.has_cron_job_token) {
+                        statusP.innerHTML = `<span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle" style="margin-right: 4px;"></i>Đã cấu hình Token:</span> <code>${res.cron_job_token_masked}</code>. Bạn có thể lấy Key trong mục Settings của cron-job.org.`;
+                    } else {
+                        statusP.innerHTML = `<span style="color: var(--warning); font-weight: 600;"><i class="fas fa-exclamation-triangle" style="margin-right: 4px;"></i>Chưa cấu hình Token:</span> Hệ thống đang dùng token fallback trong file .env (nếu có).`;
+                    }
+                } else if (statusP) {
+                    statusP.textContent = 'Không thể tải cấu hình token.';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        await fetchCronConfig();
         await fetchAndRenderCronJobs();
     }
 

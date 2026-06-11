@@ -303,6 +303,31 @@ class APIClient {
         document.body.appendChild(overlay);
     }
 
+    showSecondaryServerMessage(message, mainServerUrl) {
+        if (document.getElementById('secondary-server-overlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'secondary-server-overlay';
+        overlay.className = 'maintenance-overlay';
+        overlay.style.zIndex = '9999';
+        overlay.innerHTML = `
+            <div class="maintenance-card" style="border-color: rgba(239, 68, 68, 0.25) !important;">
+                <div class="maintenance-icon" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
+                    <i class="fas fa-circle-exclamation"></i>
+                </div>
+                <h2 class="maintenance-title" style="color: #ef4444;">Máy chủ phụ (Secondary Server)</h2>
+                <p class="maintenance-message" style="color: var(--muted);">${message || 'Tính năng này tạm thời bị khóa trên máy chủ phụ để giảm tải cho hệ thống.'}</p>
+                <div style="display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%;">
+                    <a href="${mainServerUrl || 'https://sangdevshop.netlify.app'}" class="maintenance-btn" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-weight: 600; width: 100%; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);">
+                        <i class="fas fa-right-to-bracket"></i> Chuyển sang máy chủ chính
+                    </a>
+                    <button class="btn btn-outline" onclick="document.getElementById('secondary-server-overlay').remove();" style="border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted); width: 100%; padding: 12px 24px; border-radius: var(--radius-md); font-weight: 500; cursor: pointer;">Ở lại máy chủ phụ</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
     async request(endpoint, options = {}) {
         const method = String(options.method || 'GET').toUpperCase();
         const url = this.baseURL + endpoint;
@@ -383,6 +408,10 @@ class APIClient {
                     
                     if (error.code === 'FEATURE_LOCKED') {
                         this.showMaintenanceMessage(data?.message || 'Tính năng này đang bảo trì');
+                    }
+
+                    if (error.code === 'SECONDARY_SERVER_RESTRICTED') {
+                        this.showSecondaryServerMessage(data?.message, data?.main_server_url);
                     }
                     
                     throw error;
