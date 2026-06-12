@@ -1141,7 +1141,9 @@ class App {
             { path: '/banmxh', page: '/pages/banmxh.html', script: '/js/pages/banmxh.js', role: ['admin', 'seller'], feature: 'mxh' },
             { path: '/dichvu-mxh', page: '/pages/dichvu-mxh.html', script: '/js/pages/dichvu-mxh.js', auth: true, feature: 'mxh' },
             { path: '/tempmail', page: '/pages/tempmail.html', script: '/js/pages/tempmail.js' },
-            { path: '/cronjobs', page: '/pages/cronjobs.html', script: '/js/pages/cronjobs.js', auth: true }
+            { path: '/cronjobs', page: '/pages/cronjobs.html', script: '/js/pages/cronjobs.js', auth: true },
+            { path: '/privacy', page: '/pages/privacy.html' },
+            { path: '/terms', page: '/pages/terms.html' }
         ];
         const adminPortalPath = Auth.getAdminPortalPath();
         if (adminPortalPath) {

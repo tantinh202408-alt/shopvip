@@ -1,0 +1,212 @@
+<!-- File: frontend/pages/privacy.html -->
+<style>
+    .legal-page {
+        animation: legalFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        padding-top: 30px;
+        padding-bottom: 60px;
+    }
+
+    @keyframes legalFadeIn {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .legal-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .legal-header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #0ea5e9, #22c55e);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+    }
+
+    .legal-header p {
+        color: var(--muted);
+        font-size: 16px;
+    }
+
+    .legal-container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: rgba(30, 41, 59, 0.25) !important;
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        padding: 40px;
+        transition: all 0.3s ease;
+    }
+
+    html[data-theme="light"] .legal-container {
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .legal-container:hover {
+        border-color: rgba(14, 165, 233, 0.25) !important;
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    .legal-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+        font-size: 14px;
+        color: var(--muted);
+    }
+
+    html[data-theme="light"] .legal-meta {
+        border-bottom-color: var(--border);
+    }
+
+    .legal-badge {
+        background: rgba(14, 165, 233, 0.1);
+        color: #0ea5e9;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        font-weight: 500;
+    }
+
+    .legal-section {
+        margin-bottom: 35px;
+    }
+
+    .legal-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .legal-section h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .legal-section h2 i {
+        color: #0ea5e9;
+        font-size: 16px;
+        width: 20px;
+        text-align: center;
+    }
+
+    .legal-section p {
+        color: var(--text-secondary);
+        line-height: 1.7;
+        margin-bottom: 12px;
+        text-align: justify;
+    }
+
+    .legal-section ul {
+        margin-left: 24px;
+        margin-bottom: 12px;
+    }
+
+    .legal-section ul li {
+        list-style-type: disc;
+        color: var(--text-secondary);
+        line-height: 1.7;
+        margin-bottom: 6px;
+    }
+
+    .legal-footer {
+        margin-top: 40px;
+        padding-top: 25px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+    }
+
+    html[data-theme="light"] .legal-footer {
+        border-top-color: var(--border);
+    }
+</style>
+
+<div class="container legal-page">
+    <div class="legal-header">
+        <h1 id="legal-title-text">Chính sách bảo mật</h1>
+        <p>Quyền riêng tư của bạn là ưu tiên hàng đầu của chúng tôi</p>
+    </div>
+
+    <div class="legal-container">
+        <div class="legal-meta">
+            <span>Phiên bản: 1.0.1</span>
+            <span class="legal-badge">Hiệu lực từ: 12/06/2026</span>
+        </div>
+
+        <div id="legal-content-body">
+            <div class="legal-section">
+                <h2><i class="fas fa-user-shield"></i>1. Giới thiệu chung</h2>
+                <p>Sàn giao dịch mã nguồn <strong>Sang dev</strong> cam kết tôn trọng và bảo vệ quyền riêng tư của tất cả thành viên khi truy cập và giao dịch trên nền tảng của chúng tôi. Chính sách bảo mật này mô tả cách thức chúng tôi thu thập, sử dụng, lưu trữ và bảo vệ dữ liệu cá nhân của bạn.</p>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-database"></i>2. Thông tin chúng tôi thu thập</h2>
+                <p>Để đảm bảo hoạt động an toàn và xác minh danh tính người dùng, chúng tôi thu thập các thông tin sau:</p>
+                <ul>
+                    <li><strong>Thông tin tài khoản:</strong> Họ và tên, địa chỉ email, số điện thoại, mật khẩu (được mã hóa) và thông tin đăng nhập.</li>
+                    <li><strong>Thông tin giao dịch:</strong> Lịch sử mua hàng, lịch sử bán hàng, lịch sử nạp tiền, yêu cầu rút tiền và các thông tin ngân hàng cần thiết cho thanh toán.</li>
+                    <li><strong>Dữ liệu kỹ thuật:</strong> Địa chỉ IP, loại thiết bị, lịch sử hoạt động trên hệ thống, logs đăng nhập nhằm phòng chống các cuộc tấn công và gian lận.</li>
+                </ul>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-cog"></i>3. Mục đích sử dụng thông tin</h2>
+                <p>Chúng tôi chỉ sử dụng thông tin cá nhân của bạn cho các mục đích hợp pháp sau:</p>
+                <ul>
+                    <li>Cung cấp và duy trì dịch vụ mua bán, chia sẻ mã nguồn chất lượng cao.</li>
+                    <li>Gửi mã OTP xác minh đăng ký tài khoản và xử lý yêu cầu thay đổi mật khẩu.</li>
+                    <li>Thực hiện giao dịch thanh toán tự động, nạp tiền và xử lý rút tiền doanh thu cho người bán.</li>
+                    <li>Hỗ trợ giải quyết tranh chấp giữa người mua và người bán, phản hồi yêu cầu hỗ trợ hoặc tố cáo.</li>
+                    <li>Cải thiện trải nghiệm giao diện người dùng và nâng cấp các tính năng bảo mật hệ thống.</li>
+                </ul>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-lock"></i>4. Bảo mật dữ liệu cá nhân</h2>
+                <p>Chúng tôi thực hiện các biện pháp an ninh tối đa để bảo vệ dữ liệu của bạn trước các hành vi truy cập, thay đổi hoặc tiết lộ trái phép:</p>
+                <ul>
+                    <li>Toàn bộ mật khẩu của người dùng đều được mã hóa bằng thuật toán <strong>bcrypt</strong> mạnh mẽ trước khi lưu vào cơ sở dữ liệu.</li>
+                    <li>Mọi luồng truyền dữ liệu giữa trình duyệt của bạn và máy chủ của chúng tôi đều được mã hóa bằng giao thức kết nối bảo mật <strong>HTTPS (SSL/TLS)</strong>.</li>
+                    <li>Sử dụng các công nghệ tường lửa, phát hiện xâm nhập và chặn các dải IP có hành vi tấn công DDoS hoặc cố gắng xâm nhập trái phép.</li>
+                </ul>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-handshake-slash"></i>5. Cam kết không chia sẻ cho bên thứ ba</h2>
+                <p>Chúng tôi cam kết tuyệt đối <strong>không bán, cho thuê, trao đổi hoặc tiết lộ</strong> thông tin cá nhân của bạn cho bất kỳ bên thứ ba nào vì mục đích thương mại.</p>
+                <p>Thông tin chỉ có thể được cung cấp trong các tình huống ngoại lệ sau:</p>
+                <ul>
+                    <li>Có sự đồng ý bằng văn bản của chính bạn.</li>
+                    <li>Khi có yêu cầu chính thức bằng văn bản và có đầy đủ thẩm quyền pháp lý từ các cơ quan chức năng nhà nước theo quy định của pháp luật Việt Nam.</li>
+                </ul>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-user-edit"></i>6. Quyền lợi và nghĩa vụ của người dùng</h2>
+                <p>Với tư cách là thành viên của Sang dev shop, bạn có các quyền sau:</p>
+                <ul>
+                    <li>Truy cập và chỉnh sửa thông tin cá nhân (họ tên, ảnh đại diện, số điện thoại, liên hệ) bất kỳ lúc nào trong cài đặt trang cá nhân.</li>
+                    <li>Yêu cầu xóa tài khoản vĩnh viễn và các dữ liệu liên quan bằng cách gửi yêu cầu hỗ trợ tới ban quản trị.</li>
+                </ul>
+                <p>Bên cạnh đó, bạn có trách nhiệm bảo mật thông tin tài khoản đăng nhập của mình và không chia sẻ cho người khác để tránh rủi ro mất mát dữ liệu hoặc tài sản.</p>
+            </div>
+        </div>
+
+        <div class="legal-footer">
+            <p>Nếu bạn có bất kỳ câu hỏi hoặc thắc mắc nào liên quan đến Chính sách bảo mật này, vui lòng liên hệ với chúng tôi qua email: <strong>nguyenhongsang0207@gmail.com</strong>.</p>
+        </div>
+    </div>
+</div>

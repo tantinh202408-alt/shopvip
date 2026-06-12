@@ -1,0 +1,210 @@
+<!-- File: frontend/pages/terms.html -->
+<style>
+    .legal-page {
+        animation: legalFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        padding-top: 30px;
+        padding-bottom: 60px;
+    }
+
+    @keyframes legalFadeIn {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .legal-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .legal-header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #0ea5e9, #22c55e);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+    }
+
+    .legal-header p {
+        color: var(--muted);
+        font-size: 16px;
+    }
+
+    .legal-container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: rgba(30, 41, 59, 0.25) !important;
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        padding: 40px;
+        transition: all 0.3s ease;
+    }
+
+    html[data-theme="light"] .legal-container {
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .legal-container:hover {
+        border-color: rgba(14, 165, 233, 0.25) !important;
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    .legal-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+        font-size: 14px;
+        color: var(--muted);
+    }
+
+    html[data-theme="light"] .legal-meta {
+        border-bottom-color: var(--border);
+    }
+
+    .legal-badge {
+        background: rgba(14, 165, 233, 0.1);
+        color: #0ea5e9;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        font-weight: 500;
+    }
+
+    .legal-section {
+        margin-bottom: 35px;
+    }
+
+    .legal-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .legal-section h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .legal-section h2 i {
+        color: #0ea5e9;
+        font-size: 16px;
+        width: 20px;
+        text-align: center;
+    }
+
+    .legal-section p {
+        color: var(--text-secondary);
+        line-height: 1.7;
+        margin-bottom: 12px;
+        text-align: justify;
+    }
+
+    .legal-section ul {
+        margin-left: 24px;
+        margin-bottom: 12px;
+    }
+
+    .legal-section ul li {
+        list-style-type: disc;
+        color: var(--text-secondary);
+        line-height: 1.7;
+        margin-bottom: 6px;
+    }
+
+    .legal-footer {
+        margin-top: 40px;
+        padding-top: 25px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+    }
+
+    html[data-theme="light"] .legal-footer {
+        border-top-color: var(--border);
+    }
+</style>
+
+<div class="container legal-page">
+    <div class="legal-header">
+        <h1 id="legal-title-text">Điều khoản dịch vụ</h1>
+        <p>Quy chế hoạt động và cam kết sử dụng dịch vụ trên hệ thống</p>
+    </div>
+
+    <div class="legal-container">
+        <div class="legal-meta">
+            <span>Phiên bản: 1.2.0</span>
+            <span class="legal-badge">Cập nhật cuối: 12/06/2026</span>
+        </div>
+
+        <div id="legal-content-body">
+            <div class="legal-section">
+                <h2><i class="fas fa-handshake"></i>1. Chấp thuận điều khoản</h2>
+                <p>Chào mừng bạn đến với <strong>Sang dev</strong> (Sàn giao dịch mã nguồn). Khi đăng ký tài khoản hoặc sử dụng bất kỳ dịch vụ nào trên trang web này, bạn đồng ý tuân thủ toàn bộ các điều khoản, quy định và chính sách hoạt động được công bố tại đây.</p>
+                <p>Nếu bạn không đồng ý với bất kỳ phần nào của điều khoản này, vui lòng ngừng sử dụng trang web ngay lập tức.</p>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-user-check"></i>2. Quy định về tài khoản thành viên</h2>
+                <ul>
+                    <li>Thành viên phải cung cấp địa chỉ email chính xác để có thể nhận mã OTP kích hoạt và hỗ trợ khi xảy ra tranh chấp hoặc khôi phục mật khẩu.</li>
+                    <li>Bạn có trách nhiệm bảo mật tuyệt đối thông tin đăng nhập và mọi giao dịch phát sinh từ tài khoản của mình. Không chia sẻ tài khoản cho người khác sử dụng.</li>
+                    <li>Nghiêm cấm việc đặt tên tài khoản (username), tên hiển thị chứa các từ ngữ phản cảm, vi phạm pháp luật hoặc giả mạo Ban quản trị hệ thống.</li>
+                </ul>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-store"></i>3. Quy định đối với Người bán (Seller)</h2>
+                <p>Người bán đăng tải mã nguồn lên sàn giao dịch phải cam kết các nội dung sau:</p>
+                <ul>
+                    <li>Mã nguồn phải hoạt động đúng theo hình ảnh mô tả và tài liệu đính kèm.</li>
+                    <li>Nghiêm cấm đăng tải các mã nguồn vi phạm bản quyền thương hiệu, phần mềm crack trái phép hoặc mã nguồn chứa mã độc (backdoor, virus, shell, mining script).</li>
+                    <li>Hỗ trợ hướng dẫn cài đặt cơ bản hoặc giải đáp thắc mắc cho người mua thông qua kênh chat/hỗ trợ của website khi họ có yêu cầu hợp lệ.</li>
+                    <li>Mọi hành vi gian lận cố tình mô tả sai lệch, hoặc đính kèm mã độc sẽ dẫn đến việc <strong>khóa tài khoản vĩnh viễn và đóng băng toàn bộ số dư doanh thu</strong>.</li>
+                </ul>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-shopping-cart"></i>4. Quy định đối với Người mua (Buyer)</h2>
+                <ul>
+                    <li>Người mua được khuyên nên đọc kỹ mô tả sản phẩm, yêu cầu hệ thống (phiên bản PHP, cơ sở dữ liệu...) trước khi tiến hành thanh toán.</li>
+                    <li>Sản phẩm số sau khi đã tải xuống thành công sẽ <strong>không áp dụng chính sách hoàn tiền</strong> vì đặc thù tài nguyên số có thể dễ dàng sao chép.</li>
+                    <li>Trong trường hợp sản phẩm bị lỗi nghiêm trọng không hoạt động đúng mô tả và người bán không hỗ trợ giải quyết trong vòng 48 giờ kể từ khi mở yêu cầu khiếu nại, Ban quản trị sẽ hỗ trợ hoàn tiền lại cho người mua.</li>
+                </ul>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-credit-card"></i>5. Chính sách nạp và rút tiền</h2>
+                <ul>
+                    <li>Hệ thống hỗ trợ nạp tiền tự động qua ngân hàng. Số dư sau khi nạp sẽ được cộng trực tiếp vào tài khoản người dùng để mua sắm.</li>
+                    <li>Người bán có thể thực hiện yêu cầu rút tiền từ số dư doanh thu bán hàng về tài khoản ngân hàng cá nhân. Lệnh rút sẽ được ban quản trị xét duyệt và giải ngân trong vòng 24 giờ làm việc.</li>
+                    <li>Nghiêm cấm các hành vi rửa tiền, sử dụng thẻ tín dụng hack, hoặc các giao dịch tài chính bất hợp pháp trên hệ thống.</li>
+                </ul>
+            </div>
+
+            <div class="legal-section">
+                <h2><i class="fas fa-ban"></i>6. Xử lý vi phạm và tạm khóa tài khoản</h2>
+                <p>Ban quản trị có toàn quyền tạm khóa hoặc khóa vĩnh viễn tài khoản người dùng mà không cần thông báo trước nếu phát hiện một trong các hành vi sau:</p>
+                <ul>
+                    <li>Tấn công DDoS, khai thác lỗ hổng bảo mật hoặc spam dữ liệu lên máy chủ hệ thống.</li>
+                    <li>Bán mã nguồn lừa đảo, giả mạo, hoặc chèn mã nguồn gây hại cho người mua.</li>
+                    <li>Có thái độ xúc phạm nặng nề, đe dọa các thành viên khác hoặc nhân viên hỗ trợ của sàn.</li>
+                    <li>Sử dụng các tài khoản ảo để tự đánh giá sản phẩm nhằm thao túng điểm uy tín.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="legal-footer">
+            <p>Quy chế này có hiệu lực từ ngày công bố và có thể được cập nhật thường xuyên để đảm bảo lợi ích cho toàn bộ cộng đồng. Tiếp tục sử dụng trang web đồng nghĩa với việc bạn đồng ý với các bản cập nhật mới nhất.</p>
+        </div>
+    </div>
+</div>

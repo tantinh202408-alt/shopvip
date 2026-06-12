@@ -2493,6 +2493,25 @@ window.pageInit = async function(params, query = {}) {
                 </div>
 
                 <div class="settings-section">
+                    <button type="button" class="settings-header">Chính sách bảo mật</button>
+                    <div class="settings-body">
+                        <form id="privacy-setting-form" class="form-grid form-grid-2">
+                            <div class="form-group full">
+                                <label>Tiêu đề</label>
+                                <input type="text" name="privacy_title" placeholder="Chính sách bảo mật">
+                            </div>
+                            <div class="form-group full">
+                                <label>Nội dung (mỗi dòng là 1 đoạn)</label>
+                                <textarea name="privacy_content" rows="6" placeholder="Nhập nội dung chính sách..."></textarea>
+                            </div>
+                            <div class="form-group full">
+                                <button type="submit" class="btn-primary">Lưu chính sách</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <button type="button" class="settings-header">Cấu hình AI Assistant</button>
                     <div class="settings-body">
                         <form id="ai-config-form" class="form-grid form-grid-2">
@@ -3165,6 +3184,30 @@ window.pageInit = async function(params, query = {}) {
                     await api.put(`/admin/settings/${key}`, { value });
                 }
                 showToast('Đã cập nhật điều khoản', 'success');
+            });
+        }
+
+        const privacyForm = document.getElementById('privacy-setting-form');
+        if (privacyForm) {
+            const privacyKeys = ['privacy_title', 'privacy_content'];
+            try {
+                const res = await api.get('/settings', { keys: privacyKeys.join(',') });
+                if (res.success) {
+                    privacyKeys.forEach(key => {
+                        if (privacyForm[key]) privacyForm[key].value = res.data[key] || '';
+                    });
+                }
+            } catch (error) {
+                // ignore
+            }
+
+            privacyForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                for (const key of privacyKeys) {
+                    const value = privacyForm[key] ? privacyForm[key].value : '';
+                    await api.put(`/admin/settings/${key}`, { value });
+                }
+                showToast('Đã cập nhật chính sách bảo mật', 'success');
             });
         }
 

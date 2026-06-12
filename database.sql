@@ -1,4 +1,4 @@
-﻿-- ============================================
+-- ============================================
 -- SOURCE MARKET DATABASE SCHEMA (SQLite / Turso)
 -- ============================================
 
@@ -497,7 +497,7 @@ INSERT INTO system_settings (setting_key, setting_value, description) VALUES
 ('footer_title', 'Sang dev', 'Tiêu đề footer'),
 ('footer_subtitle', 'Nền tảng mua bán mã nguồn uy tín', 'Mô tả footer'),
 ('footer_links_title', 'Liên kết', 'Tiêu đề khối liên kết footer'),
-('footer_links', 'Trang chủ | /\nBài đăng | /baidang', 'Danh sách liên kết footer (mỗi dòng: text | link)'),
+('footer_links', 'Trang chủ | /\nBài đăng | /baidang\nChính sách bảo mật | /privacy\nĐiều khoản dịch vụ | /terms', 'Danh sách liên kết footer (mỗi dòng: text | link)'),
 ('footer_contact_title', 'Liên hệ', 'Tiêu đề liên hệ footer'),
 ('footer_contact_email', 'Email: nguyenhongsang0207@gmail.com', 'Email liên hệ footer'),
 ('footer_copyright', '© 2026 Sang dev. All rights reserved.', 'Bản quyền footer'),
